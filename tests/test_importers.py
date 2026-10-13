@@ -93,7 +93,7 @@ def test_edit_is_atomic():
     from reqtest.services.project_import import update_requirement_text
     project = demo_project()
     with pytest.raises(ValueError):
-        update_requirement_text(project, project.requirements[0].id, 'Новый текст без цитат')
+        update_requirement_text(project, project.requirements[0].id, '')
     assert project.elements[0].source_fragment in project.requirements[0].text
 
 

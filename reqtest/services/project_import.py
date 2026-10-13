@@ -21,4 +21,9 @@ def update_requirement_text(project: Project, identifier: str, text: str) -> Pro
             found = True
     if not found:
         raise ValueError('Неизвестное требование')
+    removed = {e['id'] for e in data['elements'] if e['requirement_id'] == identifier}
+    data['elements'] = [e for e in data['elements'] if e['id'] not in removed]
+    data['coverage'] = [link for link in data['coverage'] if link['element_id'] not in removed]
+    for test in data['test_cases']:
+        test['element_ids'] = [eid for eid in test['element_ids'] if eid not in removed]
     return Project.model_validate(data)
