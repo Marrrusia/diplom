@@ -16,3 +16,16 @@ def test_window_has_russian_sections():
     window.show()
     app.processEvents()
     window.close()
+
+
+def test_window_import_txt(monkeypatch, tmp_path):
+    from PySide6.QtWidgets import QFileDialog
+    app = QApplication.instance() or QApplication([])
+    path = tmp_path / 'requirements.txt'
+    path.write_text('R1: Требование', encoding='utf-8')
+    monkeypatch.setattr(QFileDialog, 'getOpenFileName', lambda *args: (str(path), ''))
+    window = MainWindow()
+    window.import_file('requirements')
+    assert window.project.requirements[0].id == 'R1'
+    assert window.tables['requirements'].item(0, 1).text() == 'Требование'
+    window.close()

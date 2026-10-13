@@ -1,0 +1,3 @@
+﻿id;requirement_id;title;preconditions;input_data;steps;expected_result
+TC_CRC_001;SDD_MVA_INIT_F_00040;Включение тактирования CRC;crcHandle.Instance равно CRC;"{""crcHandle.Instance"": ""CRC""}";"Вызвать HAL_CRC_MspInit
+Зафиксировать вызовы макросов";"Вызван __HAL_RCC_CRC_CLK_ENABLE() без аргументов; тактирование CRC включено"
