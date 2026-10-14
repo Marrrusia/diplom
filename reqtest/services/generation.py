@@ -1,5 +1,6 @@
 """Атомарная генерация предложений тестов с независимым запросом проверки."""
 import json
+from datetime import datetime, timezone
 import re
 from enum import Enum
 from uuid import uuid4
@@ -9,6 +10,7 @@ from reqtest.models.domain import (StrictModel, Project, TestCase, TestSource, R
                                   GenerationEntry, Element)
 from reqtest.services.coverage import active_tests, active_elements, explicit_conflicts, coverage_summary
 from reqtest.llm.client import LLMClient, LLMError
+from reqtest.services.generation_checks import generation_quality_issues
 
 
 class GenerationMode(str, Enum):
@@ -52,6 +54,9 @@ SYSTEM = '''Сгенерируй тесты только для target_elements 
 предыдущие предложения и covered_element_ids. Не дублируй имеющиеся тесты.
 Для первоначального набора проверь все целевые элементы; для дополнения — только
 недостающие, но сохрани необходимые предусловия и связанный контекст.
+Тест вызывает входную функцию компонента и наблюдает его действия, а не вызывает
+вручную макрос, который должен вызвать компонент. Ожидаемый результат для действия
+включения тактирования явно содержит включённое тактирование соответствующего модуля.
 Каждый тест содержит конкретные предусловия, входы, действия, проверяемый ожидаемый
 результат и element_ids. Не добавляй поведение, не заданное требованием. При Instance
 != CRC не придумывай ожидаемый результат. Неизвестные данные/неопределённое поведение
@@ -99,6 +104,13 @@ def generate_tests(project: Project, client: LLMClient, mode: GenerationMode,
         return GenerationResult(project=project.model_copy(deep=True), generated_count=0,
                                 message='Все элементы имеют подтверждённое покрытие. Генерация не требуется')
     data = project.model_dump()
+    if project.initial_coverage is None:
+        summary = coverage_summary(project)
+        data['initial_coverage'] = {
+            'captured_at': datetime.now(timezone.utc).isoformat(),
+            'total': {key: summary['total'][key] for key in ('elements', 'covered')},
+            'requirements': {rid: {key: stats[key] for key in ('elements', 'covered')}
+                for rid, stats in summary['requirements'].items()}}
     proposed: list[TestCase] = []
     logs = []
     requirements = [r for r in project.requirements if any(e.requirement_id == r.id for e in targets)]
@@ -132,7 +144,7 @@ def generate_tests(project: Project, client: LLMClient, mode: GenerationMode,
             except ValidationError:
                 raise LLMError(f'{requirement.id}: некорректная структура теста') from None
             text = '\n'.join([*test.preconditions, *test.input_data.values(), *test.steps, test.expected_result])
-            conflicts = explicit_conflicts(requirement.text, text)
+            conflicts = explicit_conflicts(requirement.text, text) + generation_quality_issues(requirement, test, all_elements)
             if conflicts:
                 notes.append('Отклонено предложение: ' + '; '.join(conflicts))
                 continue

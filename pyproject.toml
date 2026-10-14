@@ -20,3 +20,4 @@ include = ["reqtest*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["integration: интеграционные проверки полного рабочего процесса"]

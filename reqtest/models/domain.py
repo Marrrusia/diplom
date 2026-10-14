@@ -108,6 +108,29 @@ class GenerationEntry(StrictModel):
     notes: str = ""
 
 
+class CoverageCount(StrictModel):
+    """Исторические счётчики подтверждённого покрытия."""
+    elements: int = Field(ge=0)
+    covered: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def valid_counts(self) -> "CoverageCount":
+        if self.covered > self.elements:
+            raise ValueError("Покрытых элементов больше общего количества")
+        return self
+
+    @property
+    def percent(self) -> float | None:
+        return round(100 * self.covered / self.elements, 2) if self.elements else None
+
+
+class CoverageBaseline(StrictModel):
+    """Снимок перед первой генерацией, без подмены неизвестных значений нулём."""
+    captured_at: str
+    total: CoverageCount
+    requirements: dict[str, CoverageCount] = Field(default_factory=dict)
+
+
 class Project(StrictModel):
     """Снимок проекта с проверкой уникальности и связей."""
     schema_version: int = 1
@@ -117,6 +140,8 @@ class Project(StrictModel):
     test_cases: list[TestCase] = Field(default_factory=list)
     coverage: list[CoverageLink] = Field(default_factory=list)
     generation_log: list[GenerationEntry] = Field(default_factory=list)
+    initial_coverage: CoverageBaseline | None = None
+    analysis_notes: dict[str, list[str]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_references(self) -> "Project":
