@@ -1,6 +1,8 @@
 """Русскоязычный интерфейс импорта, анализа, генерации и ручной проверки."""
 import logging
 from pathlib import Path
+from PySide6.QtGui import QAction
+from reqtest.ui.file_worker import FileWorker
 from PySide6.QtWidgets import (QLabel, QMainWindow, QTabWidget, QVBoxLayout, QWidget,
     QHBoxLayout, QFormLayout, QComboBox, QLineEdit, QProgressBar, QTextEdit, QPushButton, QTableWidget, QTableWidgetItem, QFileDialog, QMessageBox, QDialog, QInputDialog)
 from openpyxl import load_workbook
@@ -34,6 +36,8 @@ class MainWindow(QMainWindow):
         self.record_details = {}
         self.operation_name = ""
         self.operation_error = False
+        self.project_path = None
+        self.saved_payload = self.project.model_dump_json()
         tabs = QTabWidget()
         for title in ("Требования", "Проверяемые элементы", "Тест-кейсы", "Матрица покрытия",
                       "Генерация тестов", "Отчёты", "Настройки LLM"):
@@ -131,6 +135,24 @@ class MainWindow(QMainWindow):
                 layout.addWidget(self.summary_label)
                 tabs.addTab(page, title)
                 continue
+            if title == "Отчёты":
+                for label, action in (("Сохранить проект", self.save_current_project),
+                                      ("Сохранить проект как…", lambda: self.save_current_project(True)),
+                                      ("Открыть проект…", self.open_project_file),
+                                      ("Экспортировать XLSX…", self.export_current_report)):
+                    button = QPushButton(label)
+                    button.clicked.connect(action)
+                    layout.addWidget(button)
+                    self.import_buttons.append(button)
+                self.report_info = QTextEdit()
+                self.report_info.setReadOnly(True)
+                self.report_info.setPlainText("SQLite сохраняет все данные проекта и ручные решения.\n"
+                    "XLSX содержит Requirements, Elements, TestCases, CoverageMatrix, Summary, GenerationLog.\n"
+                    "API-ключ и настройки LLM в проект не записываются.\n"
+                    "Исходный процент фиксируется перед первой генерацией; для старых проектов он может быть неизвестен.")
+                layout.addWidget(self.report_info)
+                tabs.addTab(page, title)
+                continue
             if title == "Настройки LLM":
                 form = QFormLayout()
                 self.provider = QComboBox()
@@ -203,8 +225,9 @@ class MainWindow(QMainWindow):
         self.global_cancel.setEnabled(False)
         self.global_cancel.clicked.connect(self.cancel_analysis)
         self.statusBar().addPermanentWidget(self.global_cancel)
-        memory_note = QLabel("Проект пока хранится только в памяти")
-        self.statusBar().addPermanentWidget(memory_note)
+        self.file_status = QLabel("Новый проект — сохраните в SQLite")
+        self.statusBar().addPermanentWidget(self.file_status)
+        self.setup_file_menu()
         self.provider.currentTextChanged.connect(self.provider_changed)
         self.statusBar().showMessage("Готово к работе: импорт, анализ и ручная проверка")
 
@@ -242,7 +265,7 @@ class MainWindow(QMainWindow):
                          if kind == "requirements" else import_tests_table(table, dialog.mapping()))
             self.project = merge_import(self.project, items, kind)
             self.refresh_tables()
-            self.statusBar().showMessage(f"Добавлено записей: {len(items)}. Данные только в памяти")
+            self.statusBar().showMessage(f"Добавлено записей: {len(items)}. Сохраните изменения проекта")
         except Exception as error:
             logging.exception("Ошибка импорта")
             QMessageBox.warning(self, "Ошибка импорта", str(error))
@@ -271,6 +294,8 @@ class MainWindow(QMainWindow):
         self.render_elements()
         for kind, table in self.tables.items():
             self.show_record(kind, table.currentRow())
+        self.analysis_notes.setPlainText("Результаты модели требуют ручной проверки.\n" +
+            "\n".join(f"{rid}: {note}" for rid, notes in self.project.analysis_notes.items() for note in notes))
 
     def edit_requirement(self) -> None:
         """Редактировать выбранное требование с проверкой снимка проекта."""
@@ -336,6 +361,9 @@ class MainWindow(QMainWindow):
 
     def cancel_analysis(self) -> None:
         """Отменить между запросами; текущий HTTP-запрос ограничен таймаутом."""
+        if isinstance(self.worker, FileWorker):
+            self.statusBar().showMessage("Дождитесь завершения файловой операции")
+            return
         if self.worker:
             self.worker.requestInterruption()
             self.cancel_button.setEnabled(False)
@@ -357,12 +385,18 @@ class MainWindow(QMainWindow):
         self.analysis_progress.setRange(0, 100)
         self.analysis_progress.setValue(0 if self.operation_error else 100)
         self.analysis_progress.setFormat("Ошибка / отмена" if self.operation_error else "Завершено")
+        for action in self.file_actions:
+            action.setEnabled(True)
+        self.update_file_status()
         self.statusBar().showMessage("Операция не завершена" if self.operation_error else "Операция завершена")
 
     def closeEvent(self, event) -> None:
         """Не уничтожать работающий поток при закрытии окна."""
         if self.worker is not None:
             self.cancel_analysis()
+            event.ignore()
+            return
+        if not self.confirm_discard():
             event.ignore()
             return
         event.accept()
@@ -437,6 +471,8 @@ class MainWindow(QMainWindow):
         lines.append(f"Отклонённых элементов (исключены из расчёта): {stats['rejected_elements']}")
         self.summary_label.setText("\n".join(lines))
         self.show_link(self.matrix.currentRow(), self.matrix.currentColumn())
+        if hasattr(self, "file_status"):
+            self.update_file_status()
 
     def show_link(self, row: int, column: int) -> None:
         """Показать обоснование модели и техническую проверку выбранной пары."""
@@ -633,17 +669,21 @@ class MainWindow(QMainWindow):
     def begin_operation(self) -> None:
         """Единое состояние занятости и общая отмена на всех вкладках."""
         self.operation_error = False
-        if isinstance(self.worker, GenerationWorker):
+        if isinstance(self.worker, FileWorker):
+            self.operation_name = {'open': 'Открытие проекта', 'save': 'Сохранение проекта', 'export': 'Экспорт XLSX'}[self.worker.operation]
+        elif isinstance(self.worker, GenerationWorker):
             self.operation_name = 'Генерация'
         elif isinstance(self.worker, CoverageWorker):
             self.operation_name = 'Покрытие'
         else:
             self.operation_name = 'Выделение элементов'
-        self.global_cancel.setEnabled(True)
+        self.global_cancel.setEnabled(not isinstance(self.worker, FileWorker))
         self.analysis_progress.setFormat(self.operation_name)
         self.statusBar().showMessage(self.operation_name + ' выполняется…')
         for field in (self.provider, self.server, self.model_name, self.api_key):
             field.setEnabled(False)
+        for action in self.file_actions:
+            action.setEnabled(False)
 
     def show_operation_error(self, message: str) -> None:
         """Отметить неуспешный исход, сохранив понятное объяснение модели/сервера."""
@@ -654,3 +694,122 @@ class MainWindow(QMainWindow):
         """Менять только стандартный адрес; сохранять пользовательский сервер."""
         if self.server.text() in ('http://localhost:11434', 'http://localhost:1234/v1'):
             self.server.setText('http://localhost:11434' if provider == 'ollama' else 'http://localhost:1234/v1')
+
+    def setup_file_menu(self) -> None:
+        """Файловые команды и стандартные сочетания клавиш."""
+        menu = self.menuBar().addMenu("Файл")
+        self.file_actions = []
+        for title, shortcut, handler in (("Новый проект", "Ctrl+N", self.new_project),
+            ("Открыть проект…", "Ctrl+O", self.open_project_file),
+            ("Сохранить проект", "Ctrl+S", self.save_current_project),
+            ("Сохранить проект как…", "Ctrl+Shift+S", lambda: self.save_current_project(True)),
+            ("Экспорт XLSX…", "Ctrl+E", self.export_current_report)):
+            action = QAction(title, self)
+            action.setShortcut(shortcut)
+            action.triggered.connect(handler)
+            menu.addAction(action)
+            self.file_actions.append(action)
+
+    def update_file_status(self) -> None:
+        """Показывать несохранённые изменения, сравнивая снимок с последней записью."""
+        dirty = self.project.model_dump_json() != self.saved_payload
+        name = self.project_path.name if self.project_path else "Новый проект"
+        self.file_status.setText(name + (" — есть изменения" if dirty else ""))
+        self.setWindowTitle("Интеллектуальный анализ покрытия требований — " + name + (" *" if dirty else ""))
+
+    def confirm_discard(self) -> bool:
+        """Предотвратить потерю изменений; сохранение выполняется отдельной командой."""
+        if self.project.model_dump_json() == self.saved_payload:
+            return True
+        answer = QMessageBox.question(self, "Несохранённые изменения",
+            "В проекте есть несохранённые изменения. Продолжить без сохранения?\n"
+            "Выберите «Отмена», чтобы сначала сохранить проект (Ctrl+S).",
+            QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        return answer == QMessageBox.StandardButton.Discard
+
+    def new_project(self) -> None:
+        """Начать отдельный проект после проверки несохранённых изменений."""
+        if self.worker is not None or not self.confirm_discard():
+            return
+        name, ok = QInputDialog.getText(self, "Новый проект", "Название проекта")
+        if not ok or not name.strip():
+            return
+        self.project = Project(name=name)
+        self.project_path = None
+        self.saved_payload = self.project.model_dump_json()
+        self.clear_project_views()
+        self.refresh_tables()
+
+    def open_project_file(self) -> None:
+        """Открыть файл без изменения текущего проекта до успешной проверки."""
+        if self.worker is not None or not self.confirm_discard():
+            return
+        filename, _ = QFileDialog.getOpenFileName(self, "Открыть проект", "", "Проект SQLite (*.sqlite *.db)")
+        if filename:
+            self.start_file_operation('open', Path(filename))
+
+    def save_current_project(self, save_as: bool = False) -> None:
+        """Сохранить текущий снимок или выбрать новый файл."""
+        if self.worker is not None:
+            return
+        path = None if save_as else self.project_path
+        if path is None:
+            filename, _ = QFileDialog.getSaveFileName(self, "Сохранить проект", "project.sqlite", "Проект SQLite (*.sqlite)")
+            if not filename:
+                return
+            path = Path(filename)
+            if not path.suffix:
+                path = path.with_suffix('.sqlite')
+        self.start_file_operation('save', path)
+
+    def export_current_report(self) -> None:
+        """Экспортировать отчёт, не заменяя SQLite-файл проекта."""
+        if self.worker is not None:
+            return
+        filename, _ = QFileDialog.getSaveFileName(self, "Экспорт XLSX", "report.xlsx", "Отчёт Excel (*.xlsx)")
+        if filename:
+            path = Path(filename)
+            if not path.suffix:
+                path = path.with_suffix('.xlsx')
+            if self.project_path and path.resolve() == self.project_path.resolve():
+                QMessageBox.warning(self, 'Ошибка экспорта', 'Выберите отдельный файл отчёта')
+                return
+            self.start_file_operation('export', path)
+
+    def start_file_operation(self, operation: str, path: Path) -> None:
+        """Выполнить ввод/вывод в фоне с блокировкой изменения проекта."""
+        self.worker = FileWorker(operation, path, self.project, self)
+        self.worker.result.connect(self.accept_file_operation)
+        self.worker.error.connect(self.show_operation_error)
+        self.worker.finished.connect(self.analysis_finished)
+        self.analyze_button.setEnabled(False)
+        self.coverage_button.setEnabled(False)
+        self.cancel_button.setEnabled(False)
+        for button in self.import_buttons:
+            button.setEnabled(False)
+        self.analysis_progress.setRange(0, 0)
+        self.begin_operation()
+        self.worker.start()
+
+    def accept_file_operation(self, result) -> None:
+        """Отметить сохранение только после успешной записи на диск."""
+        operation, path, project = result
+        if operation in ('open', 'save'):
+            self.project = project
+            self.project_path = path
+            self.saved_payload = project.model_dump_json()
+            if operation == 'open':
+                self.clear_project_views()
+            self.refresh_tables()
+        self.report_info.setPlainText(('Отчёт экспортирован: ' if operation == 'export' else 'Проект открыт: ' if operation == 'open' else 'Проект сохранён: ') + str(path))
+        self.update_file_status()
+
+    def clear_project_views(self) -> None:
+        """Удалить текстовые результаты предыдущего проекта и фильтры."""
+        for search in self.search_fields.values():
+            search.clear()
+        self.report_info.setPlainText("Сохраните проект в SQLite; отчёт экспортируется в отдельный XLSX-файл")
+        for widget in [*self.record_details.values(), self.element_details, self.analysis_notes,
+                       self.coverage_details, self.generation_details, self.generation_log]:
+            widget.clear()

@@ -1,5 +1,6 @@
 """Атомарная генерация предложений тестов с независимым запросом проверки."""
 import json
+from datetime import datetime, timezone
 import re
 from enum import Enum
 from uuid import uuid4
@@ -99,6 +100,13 @@ def generate_tests(project: Project, client: LLMClient, mode: GenerationMode,
         return GenerationResult(project=project.model_copy(deep=True), generated_count=0,
                                 message='Все элементы имеют подтверждённое покрытие. Генерация не требуется')
     data = project.model_dump()
+    if project.initial_coverage is None:
+        summary = coverage_summary(project)
+        data['initial_coverage'] = {
+            'captured_at': datetime.now(timezone.utc).isoformat(),
+            'total': {key: summary['total'][key] for key in ('elements', 'covered')},
+            'requirements': {rid: {key: stats[key] for key in ('elements', 'covered')}
+                for rid, stats in summary['requirements'].items()}}
     proposed: list[TestCase] = []
     logs = []
     requirements = [r for r in project.requirements if any(e.requirement_id == r.id for e in targets)]

@@ -8,6 +8,7 @@ def merge_import(project: Project, items: list[Requirement] | list[TestCase], ki
     if kind not in ("requirements", "test_cases"):
         raise ValueError("Неизвестный набор данных")
     data = project.model_dump()
+    data['initial_coverage'] = None
     data[kind].extend(item.model_dump() for item in items)
     return Project.model_validate(data)
 

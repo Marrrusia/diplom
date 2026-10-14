@@ -109,6 +109,8 @@ def extract_project(project: Project, client: LLMClient,
     data = project.model_dump()
     data['elements'] = [e.model_dump() for e in elements]
     data['coverage'] = []
+    data['initial_coverage'] = None
+    data['analysis_notes'] = notes
     for test in data['test_cases']:
         test['element_ids'] = []
         if test['source'] == 'сгенерированный':

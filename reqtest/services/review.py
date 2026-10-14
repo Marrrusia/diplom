@@ -16,6 +16,8 @@ def edit_test(project: Project, test_id: str, changes: dict) -> Project:
             if candidate.model_dump() == item:
                 return project.model_copy(deep=True)
             candidate.review_status = ReviewStatus.PENDING
+            if candidate.source == TestSource.EXISTING:
+                data['initial_coverage'] = None
             data['test_cases'][i] = candidate.model_dump()
             for entry in data['generation_log']:
                 if test_id in entry['test_case_ids']:
@@ -44,6 +46,8 @@ def edit_element(project: Project, element_id: str, changes: dict) -> Project:
 
 def invalidate_requirement(data: dict, requirement_id: str) -> None:
     """Сбросить результаты, зависящие от контекста требования."""
+    data['initial_coverage'] = None
+    data['analysis_notes'].pop(requirement_id, None)
     element_ids = {e['id'] for e in data['elements'] if e['requirement_id'] == requirement_id}
     data['coverage'] = [link for link in data['coverage'] if link['element_id'] not in element_ids]
     for test in data['test_cases']:
