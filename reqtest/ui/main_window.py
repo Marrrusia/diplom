@@ -1,16 +1,19 @@
-"""Каркас русскоязычного интерфейса первого этапа."""
+"""Русскоязычный интерфейс импорта, анализа, генерации и ручной проверки."""
 import logging
 from pathlib import Path
 from PySide6.QtWidgets import (QLabel, QMainWindow, QTabWidget, QVBoxLayout, QWidget,
-    QFormLayout, QComboBox, QLineEdit, QProgressBar, QTextEdit, QPushButton, QTableWidget, QTableWidgetItem, QFileDialog, QMessageBox, QDialog, QInputDialog)
+    QHBoxLayout, QFormLayout, QComboBox, QLineEdit, QProgressBar, QTextEdit, QPushButton, QTableWidget, QTableWidgetItem, QFileDialog, QMessageBox, QDialog, QInputDialog)
 from openpyxl import load_workbook
 from reqtest.models.domain import Project, LLMSettings
 from reqtest.ui.analysis_worker import AnalysisWorker
 from reqtest.ui.coverage_worker import CoverageWorker
 from reqtest.ui.generation_worker import GenerationWorker
 from reqtest.services.generation import GenerationMode, review_generated_test
-from reqtest.models.domain import TestSource
-from reqtest.services.coverage import active_tests, matrix_status, coverage_summary, review_link
+from reqtest.models.domain import TestSource, CoverageStatus
+from reqtest.services.review import review_test, review_element
+from reqtest.ui.edit_dialogs import TestEditorDialog, ElementEditorDialog
+from reqtest.ui.presentation import configure_table, fit_table, filter_table, readable_record, enhance_page
+from reqtest.services.coverage import active_elements, active_tests, matrix_status, coverage_summary, review_link
 from reqtest.importers.files import read_table, import_requirements_document, import_requirements_table, import_tests_table
 from reqtest.services.project_import import merge_import, update_requirement_text
 from reqtest.ui.import_dialog import MappingDialog, FIELDS
@@ -27,6 +30,10 @@ class MainWindow(QMainWindow):
         self.tables = {}
         self.worker = None
         self.import_buttons = []
+        self.search_fields = {}
+        self.record_details = {}
+        self.operation_name = ""
+        self.operation_error = False
         tabs = QTabWidget()
         for title in ("Требования", "Проверяемые элементы", "Тест-кейсы", "Матрица покрытия",
                       "Генерация тестов", "Отчёты", "Настройки LLM"):
@@ -43,11 +50,28 @@ class MainWindow(QMainWindow):
                     edit.clicked.connect(self.edit_requirement)
                     layout.addWidget(edit)
                     self.import_buttons.append(edit)
-                table = QTableWidget(0, len(FIELDS[kind]))
-                table.setHorizontalHeaderLabels(list(FIELDS[kind].values()))
+                if kind == "test_cases":
+                    for label, action in (("Редактировать выбранный тест", self.edit_selected_test),
+                        ("Принять выбранный тест", lambda: self.review_selected_test(True)),
+                        ("Отклонить выбранный тест", lambda: self.review_selected_test(False))):
+                        edit_button = QPushButton(label)
+                        edit_button.clicked.connect(action)
+                        layout.addWidget(edit_button)
+                        self.import_buttons.append(edit_button)
+                table = QTableWidget(0, len(FIELDS[kind]) + (2 if kind == "test_cases" else 0))
+                table.setHorizontalHeaderLabels(list(FIELDS[kind].values()) + (["Источник", "Проверка"] if kind == "test_cases" else []))
                 table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
                 self.tables[kind] = table
+                self.add_search(layout, table, kind)
                 layout.addWidget(table)
+                details = QTextEdit()
+                details.setReadOnly(True)
+                details.setPlaceholderText("Выберите строку для просмотра полного текста")
+                self.record_details[kind] = details
+                layout.addWidget(details)
+                table.currentCellChanged.connect(lambda row, col, oldrow, oldcol, k=kind: self.show_record(k, row))
+                if kind == "test_cases":
+                    table.cellDoubleClicked.connect(lambda row, col: self.edit_selected_test())
                 tabs.addTab(page, title)
                 continue
             if title == "Генерация тестов":
@@ -65,7 +89,9 @@ class MainWindow(QMainWindow):
                 self.generated_table.setHorizontalHeaderLabels(["ID", "Название", "Проверка"])
                 self.generated_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
                 self.generated_table.cellClicked.connect(self.show_generated_test)
+                self.add_search(layout, self.generated_table, "generated")
                 layout.addWidget(self.generated_table)
+                self.generated_table.currentCellChanged.connect(lambda row, col, oldrow, oldcol: self.show_generated_test(row))
                 self.generation_details = QTextEdit()
                 self.generation_details.setReadOnly(True)
                 layout.addWidget(self.generation_details)
@@ -74,6 +100,10 @@ class MainWindow(QMainWindow):
                     button.clicked.connect(lambda checked=False, a=accepted: self.review_generated(a))
                     layout.addWidget(button)
                     self.import_buttons.append(button)
+                edit_generated = QPushButton("Редактировать выбранный тест")
+                edit_generated.clicked.connect(lambda: self.edit_selected_test(True))
+                layout.addWidget(edit_generated)
+                self.import_buttons.append(edit_generated)
                 self.generation_log = QTextEdit()
                 self.generation_log.setReadOnly(True)
                 layout.addWidget(self.generation_log)
@@ -86,6 +116,7 @@ class MainWindow(QMainWindow):
                 self.matrix = QTableWidget()
                 self.matrix.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
                 self.matrix.cellClicked.connect(self.show_link)
+                self.matrix.currentCellChanged.connect(lambda row, col, oldrow, oldcol: self.show_link(row, col))
                 layout.addWidget(self.matrix)
                 self.coverage_details = QTextEdit()
                 self.coverage_details.setReadOnly(True)
@@ -130,7 +161,20 @@ class MainWindow(QMainWindow):
                 self.elements_table = QTableWidget(0, 6)
                 self.elements_table.setHorizontalHeaderLabels(["ID", "Требование", "Категория", "Описание", "Цитата", "Проверка"])
                 self.elements_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+                self.add_search(layout, self.elements_table, "elements")
                 layout.addWidget(self.elements_table)
+                self.element_details = QTextEdit()
+                self.element_details.setReadOnly(True)
+                layout.addWidget(self.element_details)
+                self.elements_table.currentCellChanged.connect(lambda row, col, oldrow, oldcol: self.show_element(row))
+                self.elements_table.cellDoubleClicked.connect(lambda row, col: self.edit_selected_element())
+                for label, action in (("Редактировать выбранный элемент", self.edit_selected_element),
+                    ("Принять выбранный элемент", lambda: self.review_selected_element(True)),
+                    ("Отклонить выбранный элемент", lambda: self.review_selected_element(False))):
+                    edit_button = QPushButton(label)
+                    edit_button.clicked.connect(action)
+                    layout.addWidget(edit_button)
+                    self.import_buttons.append(edit_button)
                 self.analysis_notes = QTextEdit()
                 self.analysis_notes.setReadOnly(True)
                 layout.addWidget(self.analysis_notes)
@@ -142,7 +186,27 @@ class MainWindow(QMainWindow):
             layout.addStretch()
             tabs.addTab(page, title)
         self.setCentralWidget(tabs)
-        self.statusBar().showMessage("Этап 5: импорт и выделение элементов через LLM. Данные пока хранятся только в памяти")
+        for i in range(tabs.count()):
+            enhance_page(tabs.widget(i).layout())
+        tables = [*self.tables.values(), self.elements_table, self.generated_table]
+        for table in tables:
+            configure_table(table)
+        configure_table(self.matrix, True)
+        # Перемещаем существующий индикатор в строку состояния: он виден на всех вкладках.
+        self.analysis_progress.setParent(self)
+        self.analysis_progress.setRange(0, 100)
+        self.analysis_progress.setValue(0)
+        self.analysis_progress.setMaximumWidth(280)
+        self.analysis_progress.setFormat("Готово")
+        self.statusBar().addPermanentWidget(self.analysis_progress)
+        self.global_cancel = QPushButton("Отменить операцию")
+        self.global_cancel.setEnabled(False)
+        self.global_cancel.clicked.connect(self.cancel_analysis)
+        self.statusBar().addPermanentWidget(self.global_cancel)
+        memory_note = QLabel("Проект пока хранится только в памяти")
+        self.statusBar().addPermanentWidget(memory_note)
+        self.provider.currentTextChanged.connect(self.provider_changed)
+        self.statusBar().showMessage("Готово к работе: импорт, анализ и ручная проверка")
 
     def import_file(self, kind: str) -> None:
         """Выбрать файл и настройки; передать обработку импортёрам и сервису."""
@@ -189,14 +253,24 @@ class MainWindow(QMainWindow):
             items = getattr(self.project, kind)
             table.setRowCount(len(items))
             for i, item in enumerate(items):
-                for j, field in enumerate(FIELDS[kind]):
+                for j, field in enumerate([*FIELDS[kind], *(["source", "review_status"] if kind == "test_cases" else [])]):
                     value = getattr(item, field)
+                    if hasattr(value, "value"):
+                        value = value.value
                     if isinstance(value, list):
                         value = "\n".join(value)
-                    table.setItem(i, j, QTableWidgetItem(str(value or "")))
-            table.resizeColumnsToContents()
+                    elif isinstance(value, dict):
+                        value = "\n".join(f"{key}: {entry}" for key, entry in value.items())
+                    cell = QTableWidgetItem(str(value or ""))
+                    cell.setToolTip(str(value or ""))
+                    table.setItem(i, j, cell)
+            fit_table(table)
+            filter_table(table, self.search_fields[kind].text())
         self.render_matrix()
         self.render_generation()
+        self.render_elements()
+        for kind, table in self.tables.items():
+            self.show_record(kind, table.currentRow())
 
     def edit_requirement(self) -> None:
         """Редактировать выбранное требование с проверкой снимка проекта."""
@@ -233,7 +307,7 @@ class MainWindow(QMainWindow):
         self.worker = AnalysisWorker(self.project, settings, self)
         self.coverage_button.setEnabled(False)
         self.worker.result.connect(self.accept_analysis)
-        self.worker.error.connect(lambda message: QMessageBox.warning(self, "Ошибка LLM", message))
+        self.worker.error.connect(self.show_operation_error)
         self.worker.progress.connect(self.update_progress)
         self.worker.finished.connect(self.analysis_finished)
         self.analyze_button.setEnabled(False)
@@ -243,18 +317,19 @@ class MainWindow(QMainWindow):
         self.analysis_progress.setRange(0, len(self.project.requirements))
         self.analysis_progress.setValue(0)
         self.statusBar().showMessage("Анализ выполняется в фоне…")
+        self.begin_operation()
         self.worker.start()
 
     def update_progress(self, value: int, total: int) -> None:
         """Обновить прогресс в GUI-потоке."""
         self.analysis_progress.setRange(0, total)
         self.analysis_progress.setValue(value)
+        self.analysis_progress.setFormat(f"{self.operation_name}: %v/%m")
 
     def accept_analysis(self, result) -> None:
         """Принять только завершённый проверенный снимок."""
         self.project = result.project
-        self.render_elements()
-        self.render_matrix()
+        self.refresh_tables()
         self.analysis_notes.setPlainText("Результат LLM требует ручной проверки. Цитаты проверены автоматически; "
             "соответствие описаний смыслу требования не гарантируется.\n\n" +
             "\n".join(f"{identifier}: {note}" for identifier, notes in result.notes.items() for note in notes))
@@ -264,6 +339,7 @@ class MainWindow(QMainWindow):
         if self.worker:
             self.worker.requestInterruption()
             self.cancel_button.setEnabled(False)
+            self.global_cancel.setEnabled(False)
             self.statusBar().showMessage("Отмена после завершения текущего запроса (до 180 секунд)")
 
     def analysis_finished(self) -> None:
@@ -275,7 +351,13 @@ class MainWindow(QMainWindow):
         self.cancel_button.setEnabled(False)
         for button in self.import_buttons:
             button.setEnabled(True)
-        self.statusBar().showMessage("Операция завершена. Данные только в памяти")
+        self.global_cancel.setEnabled(False)
+        for field in (self.provider, self.server, self.model_name, self.api_key):
+            field.setEnabled(True)
+        self.analysis_progress.setRange(0, 100)
+        self.analysis_progress.setValue(0 if self.operation_error else 100)
+        self.analysis_progress.setFormat("Ошибка / отмена" if self.operation_error else "Завершено")
+        self.statusBar().showMessage("Операция не завершена" if self.operation_error else "Операция завершена")
 
     def closeEvent(self, event) -> None:
         """Не уничтожать работающий поток при закрытии окна."""
@@ -296,6 +378,10 @@ class MainWindow(QMainWindow):
                 item.setToolTip(value)
                 self.elements_table.setItem(i, j, item)
 
+        fit_table(self.elements_table)
+        filter_table(self.elements_table, self.search_fields["elements"].text())
+        self.show_element(self.elements_table.currentRow())
+
     def start_coverage(self) -> None:
         """Запустить атомарный анализ покрытия в фоне."""
         if self.worker is not None:
@@ -310,7 +396,7 @@ class MainWindow(QMainWindow):
             model=self.model_name.text(), api_key=self.api_key.text() or None)
         self.worker = CoverageWorker(self.project, settings, self)
         self.worker.result.connect(self.accept_coverage)
-        self.worker.error.connect(lambda message: QMessageBox.warning(self, "Ошибка покрытия", message))
+        self.worker.error.connect(self.show_operation_error)
         self.worker.progress.connect(self.update_progress)
         self.worker.finished.connect(self.analysis_finished)
         self.coverage_button.setEnabled(False)
@@ -320,6 +406,7 @@ class MainWindow(QMainWindow):
             button.setEnabled(False)
         self.analysis_progress.setRange(0, 0)
         self.statusBar().showMessage("Анализ покрытия выполняется в фоне. Отмена — в разделе элементов")
+        self.begin_operation()
         self.worker.start()
 
     def accept_coverage(self, project) -> None:
@@ -330,32 +417,40 @@ class MainWindow(QMainWindow):
     def render_matrix(self) -> None:
         """Показать статусы и статистику только подтверждённого покрытия."""
         tests = active_tests(self.project)
-        self.matrix.setRowCount(len(self.project.elements))
+        elements = active_elements(self.project)
+        self.matrix.setRowCount(len(elements))
         self.matrix.setColumnCount(len(tests))
         self.matrix.setHorizontalHeaderLabels([t.id for t in tests])
-        self.matrix.setVerticalHeaderLabels([e.id for e in self.project.elements])
-        for i, element in enumerate(self.project.elements):
+        self.matrix.setVerticalHeaderLabels([e.id for e in elements])
+        for i, element in enumerate(elements):
             for j, test in enumerate(tests):
                 status = matrix_status(self.project, element.id, test.id)
                 item = QTableWidgetItem(status.value)
                 item.setToolTip(element.description + "\nТест: " + test.title)
                 self.matrix.setItem(i, j, item)
+        fit_table(self.matrix, True)
         stats = coverage_summary(self.project)
         lines = []
         for name, row in [("Всего", stats['total']), *stats['requirements'].items()]:
             percent = "не определено" if row['percent'] is None else f"{row['percent']}%"
             lines.append(f"{name}: подтверждено {row['covered']}/{row['elements']}; покрытие {percent}; неподтверждённых/непокрытых {row['uncovered']}")
+        lines.append(f"Отклонённых элементов (исключены из расчёта): {stats['rejected_elements']}")
         self.summary_label.setText("\n".join(lines))
-        self.coverage_details.clear()
+        self.show_link(self.matrix.currentRow(), self.matrix.currentColumn())
 
     def show_link(self, row: int, column: int) -> None:
         """Показать обоснование модели и техническую проверку выбранной пары."""
-        element = self.project.elements[row]
+        if not 0 <= row < len(active_elements(self.project)) or not 0 <= column < len(active_tests(self.project)):
+            self.coverage_details.clear()
+            return
+        element = active_elements(self.project)[row]
         test = active_tests(self.project)[column]
         link = next((l for l in self.project.coverage if l.element_id == element.id and l.test_case_id == test.id), None)
         text = f"{element.id} — {test.id}\n"
         if link:
             text += f"Предложение модели: {link.status.value}\nУверенность: {link.confidence}\nПроверка: {link.review_status.value}\n{link.rationale}"
+            if link.manual_status:
+                text += f"\nРучное решение: {link.manual_status.value}\n{link.manual_rationale}"
         else:
             text += "Нет решения: пара ещё не проанализирована или требования различаются"
         self.coverage_details.setPlainText(text)
@@ -366,9 +461,19 @@ class MainWindow(QMainWindow):
         if row < 0 or column < 0:
             QMessageBox.information(self, "Выбор", "Выберите ячейку матрицы")
             return
+        manual_status = None
+        manual_rationale = ""
+        if accepted:
+            status, ok = QInputDialog.getItem(self, "Ручная проверка", "Ваше решение", [s.value for s in CoverageStatus], 0, False)
+            if not ok:
+                return
+            manual_rationale, ok = QInputDialog.getMultiLineText(self, "Обоснование", "Какие предусловия, действия и результаты подтверждают решение?")
+            if not ok:
+                return
+            manual_status = CoverageStatus(status)
         try:
-            self.project = review_link(self.project, self.project.elements[row].id,
-                active_tests(self.project)[column].id, accepted)
+            self.project = review_link(self.project, active_elements(self.project)[row].id,
+                active_tests(self.project)[column].id, accepted, manual_status, manual_rationale)
             self.render_matrix()
             self.show_link(row, column)
         except ValueError as error:
@@ -383,7 +488,7 @@ class MainWindow(QMainWindow):
         mode = GenerationMode(self.generation_mode.currentText())
         self.worker = GenerationWorker(self.project, settings, mode, self)
         self.worker.result.connect(self.accept_generation)
-        self.worker.error.connect(lambda message: QMessageBox.warning(self, "Ошибка генерации", message))
+        self.worker.error.connect(self.show_operation_error)
         self.worker.progress.connect(self.update_progress)
         self.worker.finished.connect(self.analysis_finished)
         self.analyze_button.setEnabled(False)
@@ -393,6 +498,7 @@ class MainWindow(QMainWindow):
             button.setEnabled(False)
         self.analysis_progress.setRange(0, 0)
         self.statusBar().showMessage("Генерация выполняется в фоне…")
+        self.begin_operation()
         self.worker.start()
 
     def accept_generation(self, result) -> None:
@@ -408,16 +514,19 @@ class MainWindow(QMainWindow):
         for i, test in enumerate(tests):
             for j, value in enumerate((test.id, test.title, test.review_status.value)):
                 self.generated_table.setItem(i, j, QTableWidgetItem(value))
+        fit_table(self.generated_table)
+        filter_table(self.generated_table, self.search_fields["generated"].text())
         self.generation_log.setPlainText("\n\n".join(
             f"{entry.requirement_id}: {entry.mode}; модель {entry.model}\n{entry.notes}"
             for entry in self.project.generation_log))
 
     def show_generated_test(self, row: int, column: int = 0) -> None:
         """Показать весь сценарий и его связи."""
-        import json
         tests = [t for t in self.project.test_cases if t.source == TestSource.GENERATED]
         if 0 <= row < len(tests):
-            self.generation_details.setPlainText(json.dumps(tests[row].model_dump(), ensure_ascii=False, indent=2))
+            self.generation_details.setPlainText(readable_record(tests[row], self.test_labels()))
+        else:
+            self.generation_details.clear()
 
     def review_generated(self, accepted: bool) -> None:
         """Принять/отклонить предложение без автоматического подтверждения покрытия."""
@@ -426,6 +535,122 @@ class MainWindow(QMainWindow):
         if not 0 <= row < len(tests):
             QMessageBox.information(self, "Выбор", "Выберите сгенерированный тест")
             return
-        self.project = review_generated_test(self.project, tests[row].id, accepted)
+        self.project = review_test(self.project, tests[row].id, accepted)
         self.refresh_tables()
         self.show_generated_test(row)
+
+    def edit_selected_test(self, generated: bool = False) -> None:
+        """Открыть форму для существующего или сгенерированного теста."""
+        if self.worker is not None:
+            return
+        tests = [t for t in self.project.test_cases if t.source == TestSource.GENERATED] if generated else self.project.test_cases
+        table = self.generated_table if generated else self.tables['test_cases']
+        row = table.currentRow()
+        if not 0 <= row < len(tests):
+            QMessageBox.information(self, 'Выбор', 'Выберите тест')
+            return
+        dialog = TestEditorDialog(self.project, tests[row], self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.project = dialog.result_project
+            self.refresh_tables()
+            if generated:
+                self.show_generated_test(row)
+
+    def review_selected_test(self, accepted: bool) -> None:
+        """Изменить статус выбранного теста, не подтверждая его покрытие."""
+        if self.worker is not None:
+            return
+        row = self.tables['test_cases'].currentRow()
+        if not 0 <= row < len(self.project.test_cases):
+            QMessageBox.information(self, 'Выбор', 'Выберите тест')
+            return
+        self.project = review_test(self.project, self.project.test_cases[row].id, accepted)
+        self.refresh_tables()
+
+    def edit_selected_element(self) -> None:
+        """Открыть проверяемый редактор элемента."""
+        if self.worker is not None:
+            return
+        row = self.elements_table.currentRow()
+        if not 0 <= row < len(self.project.elements):
+            QMessageBox.information(self, 'Выбор', 'Выберите элемент')
+            return
+        dialog = ElementEditorDialog(self.project, self.project.elements[row], self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.project = dialog.result_project
+            self.refresh_tables()
+
+    def review_selected_element(self, accepted: bool) -> None:
+        """Изменить статус аспекта и сбросить зависимые решения."""
+        if self.worker is not None:
+            return
+        row = self.elements_table.currentRow()
+        if not 0 <= row < len(self.project.elements):
+            QMessageBox.information(self, 'Выбор', 'Выберите элемент')
+            return
+        self.project = review_element(self.project, self.project.elements[row].id, accepted)
+        self.refresh_tables()
+
+    def add_search(self, layout, table: QTableWidget, kind: str) -> None:
+        """Поиск в таблице без изменения моделей или порядка строк."""
+        search = QLineEdit()
+        search.setPlaceholderText("Поиск по ID и содержимому…")
+        search.setClearButtonEnabled(True)
+        search.textChanged.connect(lambda query: filter_table(table, query))
+        self.search_fields[kind] = search
+        layout.addWidget(search)
+
+    @staticmethod
+    def test_labels() -> dict[str, str]:
+        """Русские подписи полного просмотра теста."""
+        return {'id': 'Идентификатор', 'requirement_id': 'Требование', 'title': 'Название',
+            'preconditions': 'Предусловия', 'input_data': 'Входные данные', 'steps': 'Действия',
+            'expected_result': 'Ожидаемый результат', 'element_ids': 'Связанные элементы',
+            'source': 'Источник', 'review_status': 'Проверка'}
+
+    def show_record(self, kind: str, row: int) -> None:
+        """Показать полную запись при выборе мышью или клавиатурой."""
+        records = getattr(self.project, kind)
+        if not 0 <= row < len(records):
+            self.record_details[kind].clear()
+            return
+        labels = self.test_labels() if kind == 'test_cases' else {
+            'id': 'Идентификатор', 'text': 'Текст требования', 'type': 'Тип', 'source': 'Источник', 'metadata': 'Дополнительные сведения'}
+        self.record_details[kind].setPlainText(readable_record(records[row], labels))
+
+    def show_element(self, row: int) -> None:
+        """Показать описание и цитату полностью, вместе с исходным требованием."""
+        if not 0 <= row < len(self.project.elements):
+            self.element_details.clear()
+            return
+        element = self.project.elements[row]
+        requirement = next(r for r in self.project.requirements if r.id == element.requirement_id)
+        self.element_details.setPlainText(readable_record(element, {
+            'id': 'Идентификатор', 'requirement_id': 'Требование', 'type': 'Категория',
+            'description': 'Описание', 'source_fragment': 'Цитата', 'review_status': 'Проверка'}) +
+            '\n\nИсходное требование:\n' + requirement.text)
+
+    def begin_operation(self) -> None:
+        """Единое состояние занятости и общая отмена на всех вкладках."""
+        self.operation_error = False
+        if isinstance(self.worker, GenerationWorker):
+            self.operation_name = 'Генерация'
+        elif isinstance(self.worker, CoverageWorker):
+            self.operation_name = 'Покрытие'
+        else:
+            self.operation_name = 'Выделение элементов'
+        self.global_cancel.setEnabled(True)
+        self.analysis_progress.setFormat(self.operation_name)
+        self.statusBar().showMessage(self.operation_name + ' выполняется…')
+        for field in (self.provider, self.server, self.model_name, self.api_key):
+            field.setEnabled(False)
+
+    def show_operation_error(self, message: str) -> None:
+        """Отметить неуспешный исход, сохранив понятное объяснение модели/сервера."""
+        self.operation_error = True
+        QMessageBox.warning(self, 'Операция не выполнена', message)
+
+    def provider_changed(self, provider: str) -> None:
+        """Менять только стандартный адрес; сохранять пользовательский сервер."""
+        if self.server.text() in ('http://localhost:11434', 'http://localhost:1234/v1'):
+            self.server.setText('http://localhost:11434' if provider == 'ollama' else 'http://localhost:1234/v1')

@@ -1,5 +1,6 @@
 """Атомарное добавление данных в проект вне обработчиков интерфейса."""
 from reqtest.models.domain import Project, Requirement, TestCase
+from reqtest.services.review import invalidate_requirement
 
 
 def merge_import(project: Project, items: list[Requirement] | list[TestCase], kind: str) -> Project:
@@ -17,10 +18,13 @@ def update_requirement_text(project: Project, identifier: str, text: str) -> Pro
     found = False
     for requirement in data['requirements']:
         if requirement['id'] == identifier:
+            if requirement['text'] == text.strip():
+                return project.model_copy(deep=True)
             requirement['text'] = text
             found = True
     if not found:
         raise ValueError('Неизвестное требование')
+    invalidate_requirement(data, identifier)
     removed = {e['id'] for e in data['elements'] if e['requirement_id'] == identifier}
     data['elements'] = [e for e in data['elements'] if e['id'] not in removed]
     data['coverage'] = [link for link in data['coverage'] if link['element_id'] not in removed]

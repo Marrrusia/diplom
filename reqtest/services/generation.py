@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pydantic import Field, ValidationError
 from reqtest.models.domain import (StrictModel, Project, TestCase, TestSource, ReviewStatus,
                                   GenerationEntry, Element)
-from reqtest.services.coverage import active_tests, explicit_conflicts, coverage_summary
+from reqtest.services.coverage import active_tests, active_elements, explicit_conflicts, coverage_summary
 from reqtest.llm.client import LLMClient, LLMError
 
 
@@ -62,15 +62,15 @@ SYSTEM = '''Сгенерируй тесты только для target_elements 
 def generation_targets(project: Project, mode: GenerationMode) -> list[Element]:
     """Выбрать элементы без подтверждённого покрытия; полный режим — только без тестов."""
     mode = GenerationMode(mode)
-    if not project.elements:
+    if not active_elements(project):
         raise LLMError('Сначала выделите проверяемые элементы')
     if mode == GenerationMode.FULL:
         if project.test_cases:
             raise LLMError('Первоначальный набор доступен только при отсутствии тестов. Выберите дополнение')
-        return list(project.elements)
+        return active_elements(project)
     valid = {t.id for t in active_tests(project)}
     covered = {l.element_id for l in project.coverage if l.confirmed and l.test_case_id in valid}
-    return [e for e in project.elements if e.id not in covered]
+    return [e for e in active_elements(project) if e.id not in covered]
 
 
 def _signature(test: TestCase) -> str:
@@ -175,10 +175,7 @@ def generate_tests(project: Project, client: LLMClient, mode: GenerationMode,
 
 def review_generated_test(project: Project, test_id: str, accepted: bool) -> Project:
     """Принятие делает предложение доступным для нового анализа, а не покрытым."""
-    data = project.model_dump()
-    for test in data['test_cases']:
-        if test['id'] == test_id and test['source'] == TestSource.GENERATED:
-            test['review_status'] = ReviewStatus.ACCEPTED if accepted else ReviewStatus.REJECTED
-            data['coverage'] = [link for link in data['coverage'] if link['test_case_id'] != test_id]
-            return Project.model_validate(data)
-    raise ValueError('Выберите сгенерированный тест')
+    from reqtest.services.review import review_test
+    if not any(t.id == test_id and t.source == TestSource.GENERATED for t in project.test_cases):
+        raise ValueError('Выберите сгенерированный тест')
+    return review_test(project, test_id, accepted)

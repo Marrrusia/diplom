@@ -137,6 +137,9 @@ def test_window_background_coverage_and_review(monkeypatch):
     window.matrix.setCurrentCell(0, 0)
     window.show_link(0, 0)
     assert 'Уверенность' in window.coverage_details.toPlainText()
+    from PySide6.QtWidgets import QInputDialog
+    monkeypatch.setattr(QInputDialog, 'getItem', lambda *a: ('покрыт', True))
+    monkeypatch.setattr(QInputDialog, 'getMultiLineText', lambda *a: ('Проверены действия и ожидаемый результат', True))
     window.review_selected_link(True)
     assert window.matrix.item(0, 0).text() == 'покрыт'
     assert '25.0%' in window.summary_label.text()

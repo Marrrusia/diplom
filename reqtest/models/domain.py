@@ -84,10 +84,18 @@ class CoverageLink(StrictModel):
     needs_manual_review: bool = True
     review_status: ReviewStatus = ReviewStatus.PENDING
 
+    manual_status: CoverageStatus | None = None
+    manual_rationale: str = ""
+
+    @property
+    def effective_status(self) -> CoverageStatus:
+        """Ручное уточнение не заменяет сохранённое предложение модели."""
+        return self.manual_status if self.review_status == ReviewStatus.ACCEPTED and self.manual_status is not None else self.status
+
     @property
     def confirmed(self) -> bool:
         """Неподтверждённое предложение не увеличивает покрытие."""
-        return self.status == CoverageStatus.COVERED and self.review_status == ReviewStatus.ACCEPTED
+        return self.effective_status == CoverageStatus.COVERED and self.review_status == ReviewStatus.ACCEPTED
 
 
 class GenerationEntry(StrictModel):

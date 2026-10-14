@@ -18,6 +18,11 @@ class SemanticDecision(StrictModel):
     result_evidence: list[str] = Field(default_factory=list)
 
 
+def active_elements(project: Project) -> list[Element]:
+    """Отклонённые элементы хранятся, но не анализируются как проверяемые аспекты."""
+    return [e for e in project.elements if e.review_status != ReviewStatus.REJECTED]
+
+
 def active_tests(project: Project) -> list[TestCase]:
     """Отклонённые и непринятые сгенерированные тесты не участвуют в покрытии."""
     return [t for t in project.test_cases if t.review_status != ReviewStatus.REJECTED
@@ -59,11 +64,11 @@ def analyze_coverage(project: Project, client: LLMClient,
                      progress: Callable[[int, int], None] | None = None,
                      cancelled: Callable[[], bool] | None = None) -> Project:
     """Атомарно заменить анализ; не подтверждать решения модели автоматически."""
-    if not project.elements:
+    if not active_elements(project):
         raise LLMError('Сначала выделите проверяемые элементы')
     tests = active_tests(project)
     requirements = {r.id: r for r in project.requirements}
-    pairs = [(e, t) for e in project.elements for t in tests if e.requirement_id == t.requirement_id]
+    pairs = [(e, t) for e in active_elements(project) for t in tests if e.requirement_id == t.requirement_id]
     links = []
     for i, (element, test) in enumerate(pairs):
         if cancelled and cancelled():
@@ -126,7 +131,7 @@ def matrix_status(project: Project, element_id: str, test_id: str) -> CoverageSt
         return CoverageStatus.NOT_COVERED
     if link.confirmed:
         return CoverageStatus.COVERED
-    if link.status == CoverageStatus.NOT_COVERED:
+    if link.effective_status == CoverageStatus.NOT_COVERED:
         return CoverageStatus.NOT_COVERED
     return CoverageStatus.REVIEW
 
@@ -140,18 +145,22 @@ def coverage_summary(project: Project) -> dict:
         covered = sum(e.id in confirmed for e in elements)
         return {'elements': count, 'covered': covered, 'uncovered': count - covered,
                 'percent': round(100 * covered / count, 2) if count else None}
-    return {'total': stats(project.elements), 'requirements': {
-        r.id: stats([e for e in project.elements if e.requirement_id == r.id]) for r in project.requirements}}
+    return {'total': stats(active_elements(project)), 'rejected_elements': len(project.elements) - len(active_elements(project)), 'requirements': {
+        r.id: stats([e for e in active_elements(project) if e.requirement_id == r.id]) for r in project.requirements}}
 
 
-def review_link(project: Project, element_id: str, test_id: str, accepted: bool) -> Project:
+def review_link(project: Project, element_id: str, test_id: str, accepted: bool, manual_status: CoverageStatus | None = None, manual_rationale: str = "") -> Project:
     """Сохранить ручное решение отдельно от предложения модели."""
     data = project.model_dump()
     for link in data['coverage']:
         if link['element_id'] == element_id and link['test_case_id'] == test_id:
-            if accepted and link['status'] == CoverageStatus.REVIEW:
+            if manual_status is not None and not manual_rationale.strip():
+                raise ValueError('Укажите обоснование ручного решения')
+            if accepted and link['status'] == CoverageStatus.REVIEW and manual_status is None:
                 raise ValueError('Решение требует проверки: нельзя подтвердить его как покрытие. Исправьте тест и повторите анализ')
             link['review_status'] = ReviewStatus.ACCEPTED if accepted else ReviewStatus.REJECTED
             link['needs_manual_review'] = False
+            link['manual_status'] = manual_status
+            link['manual_rationale'] = manual_rationale.strip()
             return Project.model_validate(data)
     raise ValueError('Сначала выполните анализ этой пары')

@@ -111,4 +111,6 @@ def extract_project(project: Project, client: LLMClient,
     data['coverage'] = []
     for test in data['test_cases']:
         test['element_ids'] = []
+        if test['source'] == 'сгенерированный':
+            test['review_status'] = ReviewStatus.PENDING
     return AnalysisResult(project=Project.model_validate(data), notes=notes)
