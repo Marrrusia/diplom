@@ -1,0 +1,1 @@
+DEMO_LOOP_003: При вызове RetrySend компонент должен вызывать SendFrame(frame) до получения результата SEND_OK, но не более 3 раз. После SEND_OK повторные вызовы SendFrame запрещены, RetrySend должен вернуть STATUS_OK. Если все 3 вызова завершились SEND_ERROR, RetrySend должен вернуть STATUS_SEND_ERROR.

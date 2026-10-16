@@ -1,0 +1,7 @@
+﻿id;requirement_id;title;preconditions;input_data;steps;expected_result
+TC_MASK_GOOD;DEMO_MASK_005;Обновление только младших битов;old_flags = 0xA5;"{""old_flags"": ""0xA5"", ""requested_flags"": ""0x3C""}";"Вызвать UpdateFlags
+Проверить new_flags и отдельно старшие/младшие биты";"new_flags = 0xAC; биты вне 0x0F сохранены от old_flags, биты внутри 0x0F взяты из requested_flags"
+TC_MASK_PARTIAL;DEMO_MASK_005;Проверены только младшие биты;old_flags = 0xA5;"{""old_flags"": ""0xA5"", ""requested_flags"": ""0x3C""}";"Вызвать UpdateFlags
+Проверить только new_flags & 0x0F";new_flags & 0x0F = 0x0C
+TC_MASK_DUPLICATE;DEMO_MASK_005;Повтор сценария маски с другим названием;old_flags = 0xA5;"{""old_flags"": ""0xA5"", ""requested_flags"": ""0x3C""}";"Вызвать UpdateFlags
+Проверить new_flags и отдельно старшие/младшие биты";"new_flags = 0xAC; биты вне 0x0F сохранены от old_flags, биты внутри 0x0F взяты из requested_flags"

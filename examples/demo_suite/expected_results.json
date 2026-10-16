@@ -1,0 +1,395 @@
+{
+  "reference_elements": {
+    "DEMO_RANGE_001": [
+      [
+        "RG_VALID",
+        "условие",
+        "целочисленный value в допустимом диапазоне"
+      ],
+      [
+        "RG_RANGE",
+        "диапазон",
+        "0..100 включительно"
+      ],
+      [
+        "RG_STORE",
+        "действие",
+        "сохранить value в currentLevel"
+      ],
+      [
+        "RG_OK",
+        "действие",
+        "вернуть STATUS_OK"
+      ],
+      [
+        "RG_INVALID",
+        "условие",
+        "value < 0 или value > 100"
+      ],
+      [
+        "RG_ERROR",
+        "действие",
+        "вернуть STATUS_RANGE_ERROR"
+      ],
+      [
+        "RG_PRESERVE",
+        "ограничение",
+        "не менять currentLevel при недопустимом value"
+      ]
+    ],
+    "DEMO_MODE_002": [
+      [
+        "MD_STANDBY",
+        "режим",
+        "STANDBY"
+      ],
+      [
+        "MD_NOT_READY",
+        "действие",
+        "STATUS_NOT_READY в STANDBY"
+      ],
+      [
+        "MD_NO_START",
+        "ограничение",
+        "не вызывать StartADC в STANDBY"
+      ],
+      [
+        "MD_ACTIVE",
+        "режим",
+        "ACTIVE"
+      ],
+      [
+        "MD_START",
+        "действие",
+        "StartADC() в ACTIVE"
+      ],
+      [
+        "MD_READY",
+        "условие",
+        "ADC_READY = 1"
+      ],
+      [
+        "MD_READ",
+        "действие",
+        "ReadADC() при готовности"
+      ],
+      [
+        "MD_RETURN",
+        "действие",
+        "вернуть прочитанное значение"
+      ],
+      [
+        "MD_NO_ARGS",
+        "ограничение",
+        "StartADC и ReadADC без аргументов"
+      ]
+    ],
+    "DEMO_LOOP_003": [
+      [
+        "LP_CALL",
+        "действие",
+        "SendFrame(frame)"
+      ],
+      [
+        "LP_LIMIT",
+        "цикл",
+        "не более 3 попыток"
+      ],
+      [
+        "LP_STOP",
+        "ограничение",
+        "после SEND_OK больше не вызывать SendFrame"
+      ],
+      [
+        "LP_OK",
+        "действие",
+        "STATUS_OK после успеха"
+      ],
+      [
+        "LP_EXHAUST",
+        "условие",
+        "все 3 результата SEND_ERROR"
+      ],
+      [
+        "LP_ERROR",
+        "действие",
+        "STATUS_SEND_ERROR после исчерпания"
+      ]
+    ],
+    "DEMO_TIME_004": [
+      [
+        "TM_THRESHOLD",
+        "условие",
+        "elapsed_ms >= 10"
+      ],
+      [
+        "TM_CALL",
+        "действие",
+        "PollSensor при достижении порога"
+      ],
+      [
+        "TM_ONCE",
+        "ограничение",
+        "ровно один вызов за HandleTick"
+      ],
+      [
+        "TM_NO_ARGS",
+        "ограничение",
+        "PollSensor без аргументов"
+      ],
+      [
+        "TM_LOW",
+        "условие",
+        "elapsed_ms < 10"
+      ],
+      [
+        "TM_NO_CALL",
+        "ограничение",
+        "не вызывать PollSensor ниже порога"
+      ]
+    ],
+    "DEMO_MASK_005": [
+      [
+        "MS_FORMULA",
+        "действие",
+        "вычислить new_flags по заданной формуле"
+      ],
+      [
+        "MS_PRESERVE",
+        "ограничение",
+        "сохранить биты вне маски 0x0F"
+      ],
+      [
+        "MS_REPLACE",
+        "действие",
+        "принять requested_flags внутри маски"
+      ]
+    ],
+    "DEMO_AMBIG_006": []
+  },
+  "test_expectations": [
+    {
+      "test_id": "TC_RANGE_01",
+      "requirement_id": "DEMO_RANGE_001",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "RG_VALID",
+        "RG_STORE",
+        "RG_OK"
+      ],
+      "reason": "Проверяет конкретную допустимую точку; три точки сами по себе не доказывают весь диапазон 0..100"
+    },
+    {
+      "test_id": "TC_RANGE_02",
+      "requirement_id": "DEMO_RANGE_001",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "RG_VALID",
+        "RG_STORE",
+        "RG_OK"
+      ],
+      "reason": "Проверяет конкретную допустимую точку; три точки сами по себе не доказывают весь диапазон 0..100"
+    },
+    {
+      "test_id": "TC_RANGE_03",
+      "requirement_id": "DEMO_RANGE_001",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "RG_VALID",
+        "RG_STORE",
+        "RG_OK"
+      ],
+      "reason": "Проверяет конкретную допустимую точку; три точки сами по себе не доказывают весь диапазон 0..100"
+    },
+    {
+      "test_id": "TC_RANGE_04",
+      "requirement_id": "DEMO_RANGE_001",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "RG_INVALID",
+        "RG_ERROR",
+        "RG_PRESERVE"
+      ],
+      "reason": "Явно определённая отрицательная ветвь; тексты тестов с разными значениями не являются точными дубликатами"
+    },
+    {
+      "test_id": "TC_RANGE_05",
+      "requirement_id": "DEMO_RANGE_001",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "RG_INVALID",
+        "RG_ERROR",
+        "RG_PRESERVE"
+      ],
+      "reason": "Явно определённая отрицательная ветвь; тексты тестов с разными значениями не являются точными дубликатами"
+    },
+    {
+      "test_id": "TC_RANGE_BAD",
+      "requirement_id": "DEMO_RANGE_001",
+      "manual_verdict": "не покрыт",
+      "aspects": [],
+      "reason": "Противоречит заданной ветви value > 100"
+    },
+    {
+      "test_id": "TC_MODE_STANDBY",
+      "requirement_id": "DEMO_MODE_002",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "MD_STANDBY",
+        "MD_NOT_READY",
+        "MD_NO_START"
+      ],
+      "reason": "Проверяет только режим STANDBY"
+    },
+    {
+      "test_id": "TC_MODE_ACTIVE",
+      "requirement_id": "DEMO_MODE_002",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "MD_ACTIVE",
+        "MD_START",
+        "MD_READY",
+        "MD_READ",
+        "MD_RETURN",
+        "MD_NO_ARGS"
+      ],
+      "reason": "42 — заданный тестовый вход/результат заглушки ReadADC, а не новая константа требования"
+    },
+    {
+      "test_id": "TC_MODE_UNSPEC",
+      "requirement_id": "DEMO_MODE_002",
+      "manual_verdict": "требует проверки",
+      "aspects": [],
+      "reason": "Для ADC_READY != 1 поведение прямо не определено; STATUS_TIMEOUT нельзя подтверждать или генерировать как факт требования"
+    },
+    {
+      "test_id": "TC_LOOP_FIRST",
+      "requirement_id": "DEMO_LOOP_003",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "LP_CALL",
+        "LP_LIMIT",
+        "LP_STOP",
+        "LP_OK"
+      ],
+      "reason": "Проверяет указанный путь цикла; разные последовательности проверяют разные пути"
+    },
+    {
+      "test_id": "TC_LOOP_THIRD",
+      "requirement_id": "DEMO_LOOP_003",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "LP_CALL",
+        "LP_LIMIT",
+        "LP_STOP",
+        "LP_OK"
+      ],
+      "reason": "Проверяет указанный путь цикла; разные последовательности проверяют разные пути"
+    },
+    {
+      "test_id": "TC_LOOP_FAIL",
+      "requirement_id": "DEMO_LOOP_003",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "LP_CALL",
+        "LP_LIMIT",
+        "LP_EXHAUST",
+        "LP_ERROR"
+      ],
+      "reason": "Проверяет указанный путь цикла; разные последовательности проверяют разные пути"
+    },
+    {
+      "test_id": "TC_LOOP_PARTIAL",
+      "requirement_id": "DEMO_LOOP_003",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "LP_ERROR"
+      ],
+      "reason": "Количество вызовов и предел 3 не проверены; совпадение названия RetrySend не доказывает ограничения цикла"
+    },
+    {
+      "test_id": "TC_LOOP_BAD",
+      "requirement_id": "DEMO_LOOP_003",
+      "manual_verdict": "не покрыт",
+      "aspects": [],
+      "reason": "Ожидаемые 4 вызова противоречат пределу не более 3"
+    },
+    {
+      "test_id": "TC_TIME_9",
+      "requirement_id": "DEMO_TIME_004",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "TM_LOW",
+        "TM_NO_CALL"
+      ],
+      "reason": "Проверяет конкретную точку; не предполагает сброс elapsed_ms"
+    },
+    {
+      "test_id": "TC_TIME_10",
+      "requirement_id": "DEMO_TIME_004",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "TM_THRESHOLD",
+        "TM_CALL",
+        "TM_ONCE",
+        "TM_NO_ARGS"
+      ],
+      "reason": "Проверяет конкретную точку; не предполагает сброс elapsed_ms"
+    },
+    {
+      "test_id": "TC_TIME_11",
+      "requirement_id": "DEMO_TIME_004",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "TM_THRESHOLD",
+        "TM_CALL",
+        "TM_ONCE",
+        "TM_NO_ARGS"
+      ],
+      "reason": "Проверяет конкретную точку; не предполагает сброс elapsed_ms"
+    },
+    {
+      "test_id": "TC_MASK_GOOD",
+      "requirement_id": "DEMO_MASK_005",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "MS_FORMULA",
+        "MS_PRESERVE",
+        "MS_REPLACE"
+      ],
+      "reason": "Для заданного входа (0xA5 & ~0x0F) | (0x3C & 0x0F) = 0xAC"
+    },
+    {
+      "test_id": "TC_MASK_PARTIAL",
+      "requirement_id": "DEMO_MASK_005",
+      "manual_verdict": "частичное покрытие",
+      "aspects": [
+        "MS_REPLACE"
+      ],
+      "reason": "Нет проверки сохранности старших битов; полное покрытие формулы не подтверждено"
+    },
+    {
+      "test_id": "TC_MASK_DUPLICATE",
+      "requirement_id": "DEMO_MASK_005",
+      "manual_verdict": "дубликат",
+      "aspects": [
+        "MS_FORMULA",
+        "MS_PRESERVE",
+        "MS_REPLACE"
+      ],
+      "reason": "Совпадает со сценарием TC_MASK_GOOD по предусловиям, входам, действиям и результату; импорт допускает разные ID, генератор должен избегать повтора"
+    },
+    {
+      "test_id": "TC_AMBIG_BAD",
+      "requirement_id": "DEMO_AMBIG_006",
+      "manual_verdict": "требует проверки",
+      "aspects": [],
+      "reason": "Порог 5 мс и код ERR_INVALID_COMMAND не заданы; их нельзя считать подтверждёнными требованиями"
+    }
+  ],
+  "notes": [
+    "Эталон — ручные ориентиры, не ответы реальной модели",
+    "ID эталона не совпадают с автоматически назначенными ID приложения",
+    "Фиксированный общий процент не задаётся: разбиение модели и трактовка диапазона требуют ручной проверки"
+  ]
+}

@@ -4,7 +4,7 @@
 
 | Проверка | Результат |
 | --- | --- |
-| pytest, все тесты | 109 passed; 0 failed, 0 errors, 0 skipped |
+| pytest, все тесты | 172 passed; 0 failed, 0 errors, 0 skipped |
 | Интеграционные сценарии в составе набора | 7 выполнены |
 | Точка входа main(), Qt event loop, управляемый выход | Успешно, offscreen |
 | pip check | No broken requirements found |

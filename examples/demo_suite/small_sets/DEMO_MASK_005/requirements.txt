@@ -1,0 +1,1 @@
+DEMO_MASK_005: При вызове UpdateFlags компонент должен вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F). В результате биты вне маски 0x0F должны сохранить значения old_flags, а биты внутри маски должны принять значения requested_flags.

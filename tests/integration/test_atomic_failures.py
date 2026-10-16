@@ -23,7 +23,7 @@ def test_http_failure_on_second_requirement_rolls_back():
         if len(calls) == 2:
             return httpx.Response(503, text='Server unavailable')
         content = json.dumps({'elements': [dict(type=e.type.value, description=e.description,
-                        source_fragment=e.source_fragment) for e in demo_project().elements]})
+                        source_ids=['F001']) for e in demo_project().elements]})
         return httpx.Response(200, json={'message': {'content': content}})
     client = LLMClient(LLMSettings(model='test'), httpx.MockTransport(handler))
     with pytest.raises(LLMError, match='HTTP 503'):

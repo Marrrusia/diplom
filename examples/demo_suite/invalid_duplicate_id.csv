@@ -1,0 +1,5 @@
+﻿id;requirement_id;title;preconditions;input_data;steps;expected_result
+TC_RANGE_01;DEMO_RANGE_001;Допустимый value=0;currentLevel = 25;"{""value"": ""0""}";"Вызвать SetLevel(0)
+Проверить currentLevel и возвращаемый статус";"currentLevel = 0; возвращён STATUS_OK"
+TC_RANGE_01;DEMO_RANGE_001;Допустимый value=0;currentLevel = 25;"{""value"": ""0""}";"Вызвать SetLevel(0)
+Проверить currentLevel и возвращаемый статус";"currentLevel = 0; возвращён STATUS_OK"

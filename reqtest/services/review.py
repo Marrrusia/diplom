@@ -29,15 +29,18 @@ def edit_test(project: Project, test_id: str, changes: dict) -> Project:
 
 def edit_element(project: Project, element_id: str, changes: dict) -> Project:
     """Изменение аспекта сбрасывает анализ всего его требования (общие условия)."""
-    if not changes.keys() <= {'type', 'description', 'source_fragment'}:
+    if not changes.keys() <= {'type', 'description', 'source_fragment', 'condition_ids', 'negated_condition_ids'}:
         raise ValueError('Нельзя изменять ID, статус или требование элемента')
     data = project.model_dump()
     for i, item in enumerate(data['elements']):
         if item['id'] == element_id:
             candidate = Element.model_validate({**item, **changes})
+            if 'source_fragment' in changes and changes['source_fragment'] != item['source_fragment']:
+                candidate.source_refs = []
             if candidate.model_dump() == item:
                 return project.model_copy(deep=True)
             candidate.review_status = ReviewStatus.PENDING
+            candidate.review_notes = []
             data['elements'][i] = candidate.model_dump()
             invalidate_requirement(data, candidate.requirement_id)
             return Project.model_validate(data)

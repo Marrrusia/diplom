@@ -1,0 +1,62 @@
+"""Отдельные действия не смешиваются с условиями и перечнями входов."""
+import json
+import pytest
+from reqtest.models.domain import ElementType, Project, Requirement
+from reqtest.services.atomic_elements import split_description
+from reqtest.services.extraction import extract_project
+from reqtest.services.coverage import coverage_summary
+
+
+def test_save_and_return_are_two_actions():
+    parts=split_description(ElementType.ACTION,'компонент должен сохранить value в поле currentLevel и вернуть STATUS_OK')
+    assert [p.description for p in parts]==['сохранить value в поле currentLevel','вернуть STATUS_OK']
+    assert all(p.type==ElementType.ACTION for p in parts)
+
+
+def test_negative_branch_keeps_shared_condition_and_constraint():
+    parts=split_description(ElementType.CONSTRAINT,'Если value меньше 0 или больше 100, компонент должен вернуть STATUS_RANGE_ERROR и оставить currentLevel без изменения')
+    assert [p.type for p in parts]==[ElementType.CONDITION,ElementType.ACTION,ElementType.CONSTRAINT]
+    assert parts[0].description=='Если value меньше 0 или больше 100'
+
+
+@pytest.mark.parametrize('text',[
+    'сохранить значения a и b',
+    'компонент не должен сохранить value и вернуть STATUS_OK',
+    'вызвать F, если mode == ACTIVE, и вернуть STATUS_OK',
+    'Проверка сохранения и возврата статуса',
+])
+def test_ambiguous_structure_not_automatically_split(text):
+    result=split_description(ElementType.ACTION,text)
+    assert len(result)==1 and result[0].description==text
+
+
+def test_union_inside_condition_never_split():
+    text='Если value равно 0 или 100'
+    assert len(split_description(ElementType.CONDITION,text))==1
+
+
+def test_general_predicates_and_multiple_actions():
+    result=split_description(ElementType.ACTION,'установить READY и сбросить ERROR, а также вернуть STATUS_OK')
+    # Запятая остаётся частью оформления первого предиката, факты не изменяются.
+    assert len(result)==3
+
+
+def test_extraction_splits_report_case_preserves_source_and_pending_status():
+    text='Компонент должен сохранить value в поле currentLevel и вернуть STATUS_OK.'
+    project=Project(name='Атомарность',requirements=[Requirement(id='R',text=text)])
+    class Client:
+        calls=0
+        def complete(self,messages,schema):
+            self.calls+=1
+            return json.dumps({'elements':[{'type':'действие','description':text.rstrip('.'),'source_ids':['F001']}]})
+    client=Client()
+    result=extract_project(project,client)
+    assert client.calls==1
+    elements=result.project.elements
+    assert len(elements)==2
+    assert len({e.id for e in elements})==2
+    assert all(e.source_refs[0].source_id=='F001' for e in elements)
+    assert all(e.source_fragment==text for e in elements)
+    assert all(e.review_status.value=='ожидает проверки' for e in elements)
+    assert coverage_summary(result.project)['total']['elements']==2
+    assert coverage_summary(result.project)['total']['percent']==0

@@ -18,7 +18,7 @@ def _value(value):
     if isinstance(value, Enum):
         return value.value
     if isinstance(value, (list, dict)):
-        return json.dumps(value, ensure_ascii=False)
+        return json.dumps(value, ensure_ascii=False, default=lambda item: item.model_dump(mode="json"))
     return value
 
 
@@ -43,7 +43,7 @@ def export_report(project: Project, path: Path) -> None:
               ('Requirements', 'Elements', 'TestCases', 'CoverageMatrix', 'Summary', 'GenerationLog')}
     for name, items, fields in (
         ('Requirements', project.requirements, ['id', 'text', 'type', 'source', 'metadata']),
-        ('Elements', project.elements, ['id', 'requirement_id', 'type', 'description', 'source_fragment', 'review_status']),
+        ('Elements', project.elements, ['id', 'requirement_id', 'type', 'description', 'source_fragment', 'review_status', 'source_refs', 'review_notes', 'condition_ids', 'negated_condition_ids']),
         ('TestCases', active_tests(project), ['id', 'requirement_id', 'title', 'preconditions', 'input_data', 'steps',
                                              'expected_result', 'source', 'review_status', 'element_ids']),
         ('GenerationLog', project.generation_log, ['id', 'requirement_id', 'model', 'mode', 'test_case_ids', 'notes'])):

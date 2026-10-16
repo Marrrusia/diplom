@@ -233,13 +233,22 @@ class MainWindow(QMainWindow):
 
     def import_file(self, kind: str) -> None:
         """Выбрать файл и настройки; передать обработку импортёрам и сервису."""
+        if kind not in ('requirements', 'test_cases'):
+            QMessageBox.warning(self, 'Ошибка импорта', 'Неизвестный раздел импорта')
+            return
         filters = "Требования (*.txt *.docx *.xlsx)" if kind == "requirements" else "Тест-кейсы (*.csv *.xlsx)"
-        filename, _ = QFileDialog.getOpenFileName(self, "Импорт", "", filters)
+        filename, _ = QFileDialog.getOpenFileName(self, "Импорт требований" if kind == "requirements" else "Импорт тест-кейсов", "", filters)
         if not filename:
             return
         try:
             path = Path(filename)
-            if path.suffix.lower() in (".txt", ".docx"):
+            allowed = {'.txt', '.docx', '.xlsx'} if kind == 'requirements' else {'.csv', '.xlsx'}
+            if path.suffix.lower() not in allowed:
+                section = 'требований' if kind == 'requirements' else 'тест-кейсов'
+                raise ValueError(f'Импорт {section}: выбран файл «{path.name}». '
+                    f'Фактическое расширение: {path.suffix or "отсутствует"}. '
+                    f'Поддерживаются: {", ".join(sorted(allowed))}. Выберите исходный файл, а не архив или ярлык.')
+            if kind == 'requirements' and path.suffix.lower() in (".txt", ".docx"):
                 items = import_requirements_document(path)
             else:
                 sheet = None
@@ -663,8 +672,9 @@ class MainWindow(QMainWindow):
         requirement = next(r for r in self.project.requirements if r.id == element.requirement_id)
         self.element_details.setPlainText(readable_record(element, {
             'id': 'Идентификатор', 'requirement_id': 'Требование', 'type': 'Категория',
-            'description': 'Описание', 'source_fragment': 'Цитата', 'review_status': 'Проверка'}) +
-            '\n\nИсходное требование:\n' + requirement.text)
+            'description': 'Описание', 'source_fragment': 'Цитата', 'review_status': 'Проверка', 'review_notes': 'Замечания к структуре элемента', 'condition_ids': 'Применимо при условиях', 'negated_condition_ids': 'Применимо при ложности условий'}) +
+            '\n\nИсходное требование:\n' + requirement.text +
+            '\n\nСсылки на источники:\n' + ('\n'.join(f'{ref.source_id} [{ref.start}:{ref.end}]: {ref.text}' for ref in element.source_refs) or 'Старая версия или источник отредактирован вручную'))
 
     def begin_operation(self) -> None:
         """Единое состояние занятости и общая отмена на всех вкладках."""

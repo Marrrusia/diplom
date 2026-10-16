@@ -1,0 +1,7 @@
+﻿id;requirement_id;title;preconditions;input_data;steps;expected_result
+TC_TIME_9;DEMO_TIME_004;elapsed_ms=9;Журнал PollSensor очищен;"{""elapsed_ms"": ""9""}";"Вызвать HandleTick с elapsed_ms=9
+Подсчитать вызовы PollSensor";PollSensor не вызван
+TC_TIME_10;DEMO_TIME_004;elapsed_ms=10;Журнал PollSensor очищен;"{""elapsed_ms"": ""10""}";"Вызвать HandleTick с elapsed_ms=10
+Подсчитать вызовы PollSensor";PollSensor() вызван без аргументов ровно 1 раз
+TC_TIME_11;DEMO_TIME_004;elapsed_ms=11;Журнал PollSensor очищен;"{""elapsed_ms"": ""11""}";"Вызвать HandleTick с elapsed_ms=11
+Подсчитать вызовы PollSensor";PollSensor() вызван без аргументов ровно 1 раз

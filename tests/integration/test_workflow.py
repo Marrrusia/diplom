@@ -34,7 +34,7 @@ class ProtocolServer:
         payload = json.loads(messages[-1]['content'])
         if prompt.startswith('Ты аналитик'):
             result = {'elements': [{'type': e.type.value, 'description': e.description,
-                'source_fragment': e.source_fragment} for e in demo_project().elements],
+                'source_ids': ['F001']} for e in demo_project().elements],
                 'specification_gaps': ['Поведение при Instance != CRC не определено']}
         elif prompt.startswith('Оцени покрытие'):
             test, element = payload['test_case'], payload['element']

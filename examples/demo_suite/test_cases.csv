@@ -1,0 +1,47 @@
+﻿id;requirement_id;title;preconditions;input_data;steps;expected_result
+TC_RANGE_01;DEMO_RANGE_001;Допустимый value=0;currentLevel = 25;"{""value"": ""0""}";"Вызвать SetLevel(0)
+Проверить currentLevel и возвращаемый статус";"currentLevel = 0; возвращён STATUS_OK"
+TC_RANGE_02;DEMO_RANGE_001;Допустимый value=50;currentLevel = 25;"{""value"": ""50""}";"Вызвать SetLevel(50)
+Проверить currentLevel и возвращаемый статус";"currentLevel = 50; возвращён STATUS_OK"
+TC_RANGE_03;DEMO_RANGE_001;Допустимый value=100;currentLevel = 25;"{""value"": ""100""}";"Вызвать SetLevel(100)
+Проверить currentLevel и возвращаемый статус";"currentLevel = 100; возвращён STATUS_OK"
+TC_RANGE_04;DEMO_RANGE_001;Недопустимый value=-1;currentLevel = 25;"{""value"": ""-1""}";"Вызвать SetLevel(-1)
+Проверить статус и сохранность currentLevel";"Возвращён STATUS_RANGE_ERROR; currentLevel = 25"
+TC_RANGE_05;DEMO_RANGE_001;Недопустимый value=101;currentLevel = 25;"{""value"": ""101""}";"Вызвать SetLevel(101)
+Проверить статус и сохранность currentLevel";"Возвращён STATUS_RANGE_ERROR; currentLevel = 25"
+TC_RANGE_BAD;DEMO_RANGE_001;Ошибочный статус для value=101;currentLevel = 25;"{""value"": ""101""}";Вызвать SetLevel(101);"Возвращён STATUS_OK; currentLevel = 101"
+TC_MODE_STANDBY;DEMO_MODE_002;STANDBY без запуска ADC;Режим = STANDBY;"{""mode"": ""STANDBY""}";"Очистить журнал вызовов
+Вызвать ReadSample
+Проверить статус и журнал StartADC";"Возвращён STATUS_NOT_READY; StartADC не вызван"
+TC_MODE_ACTIVE;DEMO_MODE_002;ACTIVE с готовым ADC;"Режим = ACTIVE
+ADC_READY = 1
+ReadADC возвращает 42";"{""mode"": ""ACTIVE"", ""ADC_READY"": ""1"", ""sample"": ""42""}";"Вызвать ReadSample
+Зафиксировать вызовы StartADC и ReadADC и возвращаемое значение";"StartADC() вызван без аргументов; ReadADC() вызван без аргументов; возвращено 42"
+TC_MODE_UNSPEC;DEMO_MODE_002;Выдуманное поведение при неготовом ADC;"Режим = ACTIVE
+ADC_READY = 0";"{""mode"": ""ACTIVE"", ""ADC_READY"": ""0""}";Вызвать ReadSample;Возвращён STATUS_TIMEOUT
+TC_LOOP_FIRST;DEMO_LOOP_003;RetrySend: FIRST;"frame подготовлен
+Заглушка SendFrame возвращает заданную последовательность";"{""SendFrame_returns"": ""SEND_OK"", ""frame"": ""учебный кадр""}";"Вызвать RetrySend
+Проверить число вызовов SendFrame(frame) и статус RetrySend";"SendFrame(frame) вызван 1 раз; RetrySend вернул STATUS_OK; дополнительных вызовов нет"
+TC_LOOP_THIRD;DEMO_LOOP_003;RetrySend: THIRD;"frame подготовлен
+Заглушка SendFrame возвращает заданную последовательность";"{""SendFrame_returns"": ""SEND_ERROR, SEND_ERROR, SEND_OK"", ""frame"": ""учебный кадр""}";"Вызвать RetrySend
+Проверить число вызовов SendFrame(frame) и статус RetrySend";"SendFrame(frame) вызван 3 раз; RetrySend вернул STATUS_OK; дополнительных вызовов нет"
+TC_LOOP_FAIL;DEMO_LOOP_003;RetrySend: FAIL;"frame подготовлен
+Заглушка SendFrame возвращает заданную последовательность";"{""SendFrame_returns"": ""SEND_ERROR, SEND_ERROR, SEND_ERROR"", ""frame"": ""учебный кадр""}";"Вызвать RetrySend
+Проверить число вызовов SendFrame(frame) и статус RetrySend";"SendFrame(frame) вызван 3 раз; RetrySend вернул STATUS_SEND_ERROR; дополнительных вызовов нет"
+TC_LOOP_PARTIAL;DEMO_LOOP_003;Неполная проверка RetrySend;SendFrame всегда возвращает SEND_ERROR;"{""SendFrame_returns"": ""SEND_ERROR""}";Вызвать RetrySend;RetrySend вернул STATUS_SEND_ERROR
+TC_LOOP_BAD;DEMO_LOOP_003;Противоречивый предел повторов;SendFrame всегда возвращает SEND_ERROR;"{""SendFrame_returns"": ""SEND_ERROR""}";"Вызвать RetrySend
+Подсчитать вызовы SendFrame(frame)";"SendFrame(frame) вызван 4 раза; возвращён STATUS_SEND_ERROR"
+TC_TIME_9;DEMO_TIME_004;elapsed_ms=9;Журнал PollSensor очищен;"{""elapsed_ms"": ""9""}";"Вызвать HandleTick с elapsed_ms=9
+Подсчитать вызовы PollSensor";PollSensor не вызван
+TC_TIME_10;DEMO_TIME_004;elapsed_ms=10;Журнал PollSensor очищен;"{""elapsed_ms"": ""10""}";"Вызвать HandleTick с elapsed_ms=10
+Подсчитать вызовы PollSensor";PollSensor() вызван без аргументов ровно 1 раз
+TC_TIME_11;DEMO_TIME_004;elapsed_ms=11;Журнал PollSensor очищен;"{""elapsed_ms"": ""11""}";"Вызвать HandleTick с elapsed_ms=11
+Подсчитать вызовы PollSensor";PollSensor() вызван без аргументов ровно 1 раз
+TC_MASK_GOOD;DEMO_MASK_005;Обновление только младших битов;old_flags = 0xA5;"{""old_flags"": ""0xA5"", ""requested_flags"": ""0x3C""}";"Вызвать UpdateFlags
+Проверить new_flags и отдельно старшие/младшие биты";"new_flags = 0xAC; биты вне 0x0F сохранены от old_flags, биты внутри 0x0F взяты из requested_flags"
+TC_MASK_PARTIAL;DEMO_MASK_005;Проверены только младшие биты;old_flags = 0xA5;"{""old_flags"": ""0xA5"", ""requested_flags"": ""0x3C""}";"Вызвать UpdateFlags
+Проверить только new_flags & 0x0F";new_flags & 0x0F = 0x0C
+TC_MASK_DUPLICATE;DEMO_MASK_005;Повтор сценария маски с другим названием;old_flags = 0xA5;"{""old_flags"": ""0xA5"", ""requested_flags"": ""0x3C""}";"Вызвать UpdateFlags
+Проверить new_flags и отдельно старшие/младшие биты";"new_flags = 0xAC; биты вне 0x0F сохранены от old_flags, биты внутри 0x0F взяты из requested_flags"
+TC_AMBIG_BAD;DEMO_AMBIG_006;Выдуманные время и код ошибки;ProcessCommand доступен;"{""command"": ""???""}";"Вызвать ProcessCommand с command=???
+Измерить время";За 5 мс возвращён ERR_INVALID_COMMAND

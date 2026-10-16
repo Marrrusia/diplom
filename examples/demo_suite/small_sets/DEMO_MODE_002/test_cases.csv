@@ -1,0 +1,10 @@
+﻿id;requirement_id;title;preconditions;input_data;steps;expected_result
+TC_MODE_STANDBY;DEMO_MODE_002;STANDBY без запуска ADC;Режим = STANDBY;"{""mode"": ""STANDBY""}";"Очистить журнал вызовов
+Вызвать ReadSample
+Проверить статус и журнал StartADC";"Возвращён STATUS_NOT_READY; StartADC не вызван"
+TC_MODE_ACTIVE;DEMO_MODE_002;ACTIVE с готовым ADC;"Режим = ACTIVE
+ADC_READY = 1
+ReadADC возвращает 42";"{""mode"": ""ACTIVE"", ""ADC_READY"": ""1"", ""sample"": ""42""}";"Вызвать ReadSample
+Зафиксировать вызовы StartADC и ReadADC и возвращаемое значение";"StartADC() вызван без аргументов; ReadADC() вызван без аргументов; возвращено 42"
+TC_MODE_UNSPEC;DEMO_MODE_002;Выдуманное поведение при неготовом ADC;"Режим = ACTIVE
+ADC_READY = 0";"{""mode"": ""ACTIVE"", ""ADC_READY"": ""0""}";Вызвать ReadSample;Возвращён STATUS_TIMEOUT

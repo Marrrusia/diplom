@@ -1,0 +1,3 @@
+﻿id;requirement_id;title;preconditions;input_data;steps;expected_result
+TC_AMBIG_BAD;DEMO_AMBIG_006;Выдуманные время и код ошибки;ProcessCommand доступен;"{""command"": ""???""}";"Вызвать ProcessCommand с command=???
+Измерить время";За 5 мс возвращён ERR_INVALID_COMMAND

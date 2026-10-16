@@ -43,6 +43,14 @@ class Requirement(StrictModel):
     metadata: dict[str, str] = Field(default_factory=dict)
 
 
+class SourceReference(StrictModel):
+    """Источник, созданный приложением; смещения в символах Python, не байтах."""
+    source_id: str = Field(min_length=1)
+    start: int = Field(ge=0)
+    end: int = Field(gt=0)
+    text: str = Field(min_length=1)
+
+
 class Element(StrictModel):
     """Проверяемый аспект, привязанный к цитате требования."""
     id: str = Field(min_length=1)
@@ -50,6 +58,10 @@ class Element(StrictModel):
     type: ElementType
     description: str = Field(min_length=1)
     source_fragment: str = Field(min_length=1)
+    source_refs: list[SourceReference] = Field(default_factory=list)
+    review_notes: list[str] = Field(default_factory=list)
+    condition_ids: list[str] = Field(default_factory=list)
+    negated_condition_ids: list[str] = Field(default_factory=list)
     review_status: ReviewStatus = ReviewStatus.PENDING
 
 
@@ -158,6 +170,39 @@ class Project(StrictModel):
         for element in self.elements:
             if element.source_fragment not in requirements[element.requirement_id].text:
                 raise ValueError("Цитата отсутствует в исходном требовании")
+            if element.source_refs:
+                refs = element.source_refs
+                if len({ref.source_id for ref in refs}) != len(refs):
+                    raise ValueError("Повторная ссылка на источник")
+                original = requirements[element.requirement_id].text
+                for ref in refs:
+                    if ref.end <= ref.start or original[ref.start:ref.end] != ref.text:
+                        raise ValueError("Источник или его смещения не соответствуют требованию")
+                envelope = original[min(ref.start for ref in refs):max(ref.end for ref in refs)]
+                if element.source_fragment != envelope:
+                    raise ValueError("Фрагмент не соответствует ссылкам источника")
+        for element in self.elements:
+            positive, negative = element.condition_ids, element.negated_condition_ids
+            if len(set(positive)) != len(positive) or len(set(negative)) != len(negative) or set(positive) & set(negative):
+                raise ValueError("Повторные или противоречивые условия применимости")
+            for cid in [*positive, *negative]:
+                if cid not in elements or elements[cid].type != ElementType.CONDITION or elements[cid].requirement_id != element.requirement_id or cid == element.id:
+                    raise ValueError("Некорректная ссылка на условие применимости")
+        visited: set[str] = set()
+        visiting: set[str] = set()
+        def visit(element_id: str) -> None:
+            if element_id in visiting:
+                raise ValueError("Циклические условия применимости")
+            if element_id in visited:
+                return
+            visiting.add(element_id)
+            element = elements[element_id]
+            for condition_id in element.condition_ids + element.negated_condition_ids:
+                visit(condition_id)
+            visiting.remove(element_id)
+            visited.add(element_id)
+        for element_id in elements:
+            visit(element_id)
         for test in self.test_cases:
             for eid in test.element_ids:
                 if eid not in elements or elements[eid].requirement_id != test.requirement_id:

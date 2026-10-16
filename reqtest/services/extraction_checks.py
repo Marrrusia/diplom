@@ -2,6 +2,7 @@
 import re
 from dataclasses import dataclass
 from reqtest.models.domain import ElementType
+from reqtest.services.element_grounding import technical_facts
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,12 @@ def required_aspects(text: str) -> list[RequiredAspect]:
         aspects.append(RequiredAspect(ElementType.ACTION, match.group(0), 'действие вызова макроса'))
     for match in re.finditer(r'без\s+аргументов', text, re.IGNORECASE):
         aspects.append(RequiredAspect(ElementType.CONSTRAINT, match.group(0), 'ограничение числа аргументов'))
+    for match in re.finditer(r'в диапазоне от [+-]?\d+(?:[.,]\d+)? до [+-]?\d+(?:[.,]\d+)?(?: включительно)?', text, re.IGNORECASE):
+        aspects.append(RequiredAspect(ElementType.RANGE, match.group(0), 'числовой диапазон'))
+    for match in re.finditer(r'в режиме [A-Za-z_][A-Za-z_0-9]*', text, re.IGNORECASE):
+        aspects.append(RequiredAspect(ElementType.MODE, match.group(0), 'режим функционирования'))
+    for match in re.finditer(r'не более \d+ раз', text, re.IGNORECASE):
+        aspects.append(RequiredAspect(ElementType.LOOP, match.group(0), 'предел повторений цикла'))
     return aspects
 
 
@@ -40,5 +47,6 @@ def missing_aspects(text: str, elements) -> list[RequiredAspect]:
         item.type == aspect.type
         and re.sub(r"^(?:если|необходимо|должен)\s+", "", aspect.fragment, flags=re.IGNORECASE) in item.source_fragment
         and (aspect.description_token is None or aspect.description_token in item.description)
+        and (aspect.type != ElementType.CONDITION or technical_facts(aspect.fragment) <= technical_facts(item.description))
         for item in elements
     )]

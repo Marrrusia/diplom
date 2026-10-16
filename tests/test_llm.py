@@ -10,9 +10,9 @@ from reqtest.services.extraction import extract_project
 
 
 def response(fragment='без аргументов'):
-    items = [{'type': e.type.value, 'description': e.description, 'source_fragment': e.source_fragment}
+    items = [{'type': e.type.value, 'description': e.description, 'source_ids': ['F001']}
              for e in demo_project().elements]
-    items[-1]['source_fragment'] = fragment
+    items[-1]['source_ids'] = ['F001'] if fragment == 'без аргументов' else ['UNKNOWN']
     return json.dumps({'elements': items, 'specification_gaps': []}, ensure_ascii=False)
 
 
@@ -153,7 +153,6 @@ def test_screenshot_missing_constraint_retried():
     incomplete = json.loads(response())
     incomplete['elements'] = incomplete['elements'][:3]
     # Фраза присутствует в действии, но ограничение всё равно должно быть отдельным.
-    incomplete['elements'][2]['source_fragment'] += ' без аргументов'
     incomplete['elements'][2]['description'] += ' без аргументов'
     class Client:
         calls = 0

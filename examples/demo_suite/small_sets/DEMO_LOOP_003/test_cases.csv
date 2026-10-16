@@ -1,0 +1,13 @@
+﻿id;requirement_id;title;preconditions;input_data;steps;expected_result
+TC_LOOP_FIRST;DEMO_LOOP_003;RetrySend: FIRST;"frame подготовлен
+Заглушка SendFrame возвращает заданную последовательность";"{""SendFrame_returns"": ""SEND_OK"", ""frame"": ""учебный кадр""}";"Вызвать RetrySend
+Проверить число вызовов SendFrame(frame) и статус RetrySend";"SendFrame(frame) вызван 1 раз; RetrySend вернул STATUS_OK; дополнительных вызовов нет"
+TC_LOOP_THIRD;DEMO_LOOP_003;RetrySend: THIRD;"frame подготовлен
+Заглушка SendFrame возвращает заданную последовательность";"{""SendFrame_returns"": ""SEND_ERROR, SEND_ERROR, SEND_OK"", ""frame"": ""учебный кадр""}";"Вызвать RetrySend
+Проверить число вызовов SendFrame(frame) и статус RetrySend";"SendFrame(frame) вызван 3 раз; RetrySend вернул STATUS_OK; дополнительных вызовов нет"
+TC_LOOP_FAIL;DEMO_LOOP_003;RetrySend: FAIL;"frame подготовлен
+Заглушка SendFrame возвращает заданную последовательность";"{""SendFrame_returns"": ""SEND_ERROR, SEND_ERROR, SEND_ERROR"", ""frame"": ""учебный кадр""}";"Вызвать RetrySend
+Проверить число вызовов SendFrame(frame) и статус RetrySend";"SendFrame(frame) вызван 3 раз; RetrySend вернул STATUS_SEND_ERROR; дополнительных вызовов нет"
+TC_LOOP_PARTIAL;DEMO_LOOP_003;Неполная проверка RetrySend;SendFrame всегда возвращает SEND_ERROR;"{""SendFrame_returns"": ""SEND_ERROR""}";Вызвать RetrySend;RetrySend вернул STATUS_SEND_ERROR
+TC_LOOP_BAD;DEMO_LOOP_003;Противоречивый предел повторов;SendFrame всегда возвращает SEND_ERROR;"{""SendFrame_returns"": ""SEND_ERROR""}";"Вызвать RetrySend
+Подсчитать вызовы SendFrame(frame)";"SendFrame(frame) вызван 4 раза; возвращён STATUS_SEND_ERROR"

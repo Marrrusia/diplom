@@ -118,8 +118,25 @@ class ElementEditorDialog(EditorDialog):
         self.form.addRow('Категория', self.category)
         self.form.addRow('Описание', self.description)
         self.form.addRow('Точная цитата', self.fragment)
+        self.condition_lists = []
+        for label, selected in [('При истинности условий', element.condition_ids),
+                                ('При ложности условий (иначе)', element.negated_condition_ids)]:
+            choices = QListWidget()
+            for condition in project.elements:
+                if condition.type == ElementType.CONDITION and condition.requirement_id == element.requirement_id and condition.id != element.id:
+                    item = QListWidgetItem(condition.id + ': ' + condition.description)
+                    item.setToolTip(condition.description)
+                    item.setData(Qt.ItemDataRole.UserRole, condition.id)
+                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    item.setCheckState(Qt.CheckState.Checked if condition.id in selected else Qt.CheckState.Unchecked)
+                    choices.addItem(item)
+            self.condition_lists.append(choices)
+            self.form.addRow(label, choices)
         self.finish_form()
 
     def apply(self) -> Project:
         return edit_element(self.project, self.element_id, dict(type=self.category.currentText(),
-            description=self.description.toPlainText(), source_fragment=self.fragment.toPlainText()))
+            description=self.description.toPlainText(), source_fragment=self.fragment.toPlainText(),
+            **{field: [choices.item(i).data(Qt.ItemDataRole.UserRole) for i in range(choices.count())
+                       if choices.item(i).checkState() == Qt.CheckState.Checked]
+               for field, choices in zip(('condition_ids', 'negated_condition_ids'), self.condition_lists)}))

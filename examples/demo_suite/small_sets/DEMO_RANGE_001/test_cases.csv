@@ -1,0 +1,12 @@
+﻿id;requirement_id;title;preconditions;input_data;steps;expected_result
+TC_RANGE_01;DEMO_RANGE_001;Допустимый value=0;currentLevel = 25;"{""value"": ""0""}";"Вызвать SetLevel(0)
+Проверить currentLevel и возвращаемый статус";"currentLevel = 0; возвращён STATUS_OK"
+TC_RANGE_02;DEMO_RANGE_001;Допустимый value=50;currentLevel = 25;"{""value"": ""50""}";"Вызвать SetLevel(50)
+Проверить currentLevel и возвращаемый статус";"currentLevel = 50; возвращён STATUS_OK"
+TC_RANGE_03;DEMO_RANGE_001;Допустимый value=100;currentLevel = 25;"{""value"": ""100""}";"Вызвать SetLevel(100)
+Проверить currentLevel и возвращаемый статус";"currentLevel = 100; возвращён STATUS_OK"
+TC_RANGE_04;DEMO_RANGE_001;Недопустимый value=-1;currentLevel = 25;"{""value"": ""-1""}";"Вызвать SetLevel(-1)
+Проверить статус и сохранность currentLevel";"Возвращён STATUS_RANGE_ERROR; currentLevel = 25"
+TC_RANGE_05;DEMO_RANGE_001;Недопустимый value=101;currentLevel = 25;"{""value"": ""101""}";"Вызвать SetLevel(101)
+Проверить статус и сохранность currentLevel";"Возвращён STATUS_RANGE_ERROR; currentLevel = 25"
+TC_RANGE_BAD;DEMO_RANGE_001;Ошибочный статус для value=101;currentLevel = 25;"{""value"": ""101""}";Вызвать SetLevel(101);"Возвращён STATUS_OK; currentLevel = 101"
