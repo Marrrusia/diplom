@@ -1,7 +1,7 @@
 """Проверки отдельных явно записанных аспектов, без вывода нового поведения."""
 import re
 from dataclasses import dataclass
-from reqtest.models.domain import ElementType
+from reqtest.models.domain import ElementType, Element, Requirement, ReviewStatus
 from reqtest.services.element_grounding import technical_facts, is_gap_only_source
 from reqtest.services.source_catalog import build_source_catalog
 
@@ -61,3 +61,29 @@ def missing_aspects(text: str, elements) -> list[RequiredAspect]:
         and (aspect.type != ElementType.CONDITION or technical_facts(aspect.fragment) <= technical_facts(item.description))
         for item in elements
     )]
+
+
+def restore_explicit_modes(requirement: Requirement, elements: list[Element]) -> list[Element]:
+    """Дополнить явно названные режимы исходными цитатами без вывода поведения."""
+    result = list(elements)
+    catalog = build_source_catalog(requirement.text)
+    used_ids = {element.id for element in result}
+    for aspect in missing_aspects(requirement.text, elements):
+        if aspect.type != ElementType.MODE:
+            continue
+        source = next((ref for ref in catalog if aspect.fragment in ref.text
+                       and not is_gap_only_source(ref.text)), None)
+        if source is None:
+            continue
+        number = 1
+        while f'{requirement.id}::E{number:03}' in used_ids:
+            number += 1
+        identifier = f'{requirement.id}::E{number:03}'
+        used_ids.add(identifier)
+        result.append(Element(id=identifier, requirement_id=requirement.id,
+                              type=ElementType.MODE, description=aspect.fragment,
+                              source_fragment=source.text, source_refs=[source],
+                              review_status=ReviewStatus.PENDING,
+                              review_notes=['Режим добавлен правилом из явного текста требования: '
+                                            'модель не выделила его отдельно. Требуется ручная проверка.']))
+    return result

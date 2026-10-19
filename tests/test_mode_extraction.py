@@ -83,7 +83,7 @@ def test_gap_only_source_cannot_prove_defined_action():
     assert not project.elements
 
 
-def test_discarded_candidate_does_not_hide_missing_required_mode():
+def test_discarded_mode_is_restored_from_defined_source():
     requirement = Requirement(id='R', text='В режиме ACTIVE компонент должен вызвать StartADC(). '
                               'Поведение в режиме ACTIVE при ошибке не определено.')
 
@@ -91,5 +91,41 @@ def test_discarded_candidate_does_not_hide_missing_required_mode():
         def complete(self, messages, schema):
             return json.dumps({'elements': [dict(type='режим', description='Режим ACTIVE', source_ids=['F002'])]})
 
-    with pytest.raises(LLMError, match='Пропущены отдельные аспекты'):
+    result = extract_project(Project(name='Режим', requirements=[requirement]), Client())
+    assert len(result.project.elements) == 1
+    assert result.project.elements[0].source_refs[0].source_id == 'F001'
+    assert result.project.elements[0].review_status.value == 'ожидает проверки'
+
+
+@pytest.mark.parametrize('kind', ['условие', 'действие'])
+def test_modes_omitted_as_separate_category_are_restored(kind):
+    requirement = Requirement(id='R', text='В режиме STANDBY компонент должен вернуть STATUS_NOT_READY. '
+                              'В режиме ACTIVE компонент должен вызвать StartADC(). '
+                              'Поведение в режиме OTHER не определено.')
+
+    class Client:
+        calls = 0
+
+        def complete(self, messages, schema):
+            self.calls += 1
+            return json.dumps({'elements': [dict(type=kind, description='Режим STANDBY', source_ids=['F001']),
+                                           dict(type=kind, description='Режим ACTIVE', source_ids=['F002'])]})
+
+    client = Client()
+    result = extract_project(Project(name='Режимы', requirements=[requirement]), client)
+    modes = [e for e in result.project.elements if e.type == ElementType.MODE]
+    assert client.calls == 1
+    assert {e.description for e in modes} == {'В режиме STANDBY', 'В режиме ACTIVE'}
+    assert all(e.review_notes and e.review_status.value == 'ожидает проверки' for e in modes)
+    assert len({e.id for e in result.project.elements}) == len(result.project.elements)
+
+
+def test_restoration_does_not_replace_non_mode_completeness_checks():
+    requirement = Requirement(id='R', text='При вызове Foo в режиме ACTIVE компонент должен вернуть STATUS_OK.')
+
+    class Client:
+        def complete(self, messages, schema):
+            return '{"elements": []}'
+
+    with pytest.raises(LLMError, match='условие вызова'):
         extract_project(Project(name='Режим', requirements=[requirement]), Client())

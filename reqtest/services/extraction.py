@@ -8,7 +8,7 @@ from reqtest.services.source_catalog import build_source_catalog
 from reqtest.services.atomic_elements import split_description
 from reqtest.services.branch_context import attach_branch_context
 from reqtest.services.element_grounding import grounding_issues, is_specification_gap, is_gap_only_source, split_grounding_issues
-from reqtest.services.extraction_checks import missing_aspects, required_aspects
+from reqtest.services.extraction_checks import missing_aspects, required_aspects, restore_explicit_modes
 
 
 class ExtractedElement(StrictModel):
@@ -129,6 +129,7 @@ def extract_project(project: Project, client: LLMClient,
                         type=item.type, description=item.description,
                         source_fragment=requirement.text[refs[0].start:refs[-1].end],
                         source_refs=refs, review_notes=review_notes, review_status=ReviewStatus.PENDING))
+                resolved = restore_explicit_modes(requirement, resolved)
                 missing = missing_aspects(requirement.text, resolved)
                 if missing:
                     problems.append('Пропущены отдельные аспекты: ' + '; '.join(f'{a.label}: {a.fragment}' for a in missing))
