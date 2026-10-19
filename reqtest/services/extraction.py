@@ -101,6 +101,11 @@ def extract_project(project: Project, client: LLMClient,
                         problems.append(f'Элемент {number}: неизвестные или повторные source_ids {item.source_ids}')
                         continue
                     refs = sorted([by_id[sid] for sid in item.source_ids], key=lambda ref: ref.start)
+                    if all(is_gap_only_source(ref.text) for ref in refs):
+                        gaps.append(f'Исключён кандидат элемента {number}: {item.description}. '
+                                    'Его источники описывают только недостаточность спецификации; '
+                                    'проверяемое поведение не установлено. Проверьте результат вручную.')
+                        continue
                     if not is_specification_gap(item.description):
                         defined_refs = [ref for ref in refs if not is_gap_only_source(ref.text)]
                         if defined_refs:

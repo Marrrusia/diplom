@@ -48,6 +48,7 @@ def test_demo_mode_defined_behavior_with_extra_gap_reference():
         ('действие', 'Вызвать StartADC()', [active, gap]),
         ('ограничение', 'StartADC() без аргументов', [active]),
         ('ограничение', 'ReadADC() без аргументов', [active]),
+        ('действие', 'Вернуть 1', [gap]),
     ]
 
     class Client:
@@ -63,6 +64,8 @@ def test_demo_mode_defined_behavior_with_extra_gap_reference():
     assert len([e for e in result.project.elements if e.type == ElementType.MODE]) == 2
     assert all(gap not in [ref.source_id for ref in e.source_refs] for e in result.project.elements)
     assert any('не определено' in note for note in result.notes[requirement.id])
+    assert any('Исключён кандидат' in note and 'Вернуть 1' in note for note in result.notes[requirement.id])
+    assert not any(e.description == 'Вернуть 1' for e in result.project.elements)
 
 
 def test_gap_only_source_cannot_prove_defined_action():
@@ -73,6 +76,20 @@ def test_gap_only_source_cannot_prove_defined_action():
             return json.dumps({'elements': [dict(type='действие', description='Вернуть 1', source_ids=['F001'])]})
 
     project = Project(name='Пробел', requirements=[requirement])
-    with pytest.raises(LLMError, match='отсутствии спецификации'):
-        extract_project(project, Client())
+    result = extract_project(project, Client())
+    assert not result.project.elements
+    assert any('Исключён кандидат' in note for note in result.notes['R'])
+    assert any('Проверяемые элементы не выделены' in note for note in result.notes['R'])
     assert not project.elements
+
+
+def test_discarded_candidate_does_not_hide_missing_required_mode():
+    requirement = Requirement(id='R', text='В режиме ACTIVE компонент должен вызвать StartADC(). '
+                              'Поведение в режиме ACTIVE при ошибке не определено.')
+
+    class Client:
+        def complete(self, messages, schema):
+            return json.dumps({'elements': [dict(type='режим', description='Режим ACTIVE', source_ids=['F002'])]})
+
+    with pytest.raises(LLMError, match='Пропущены отдельные аспекты'):
+        extract_project(Project(name='Режим', requirements=[requirement]), Client())
