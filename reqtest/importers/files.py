@@ -7,6 +7,7 @@ from pathlib import Path
 
 from docx import Document
 from docx.oxml.ns import qn
+from docx.text.paragraph import Paragraph
 from openpyxl import load_workbook
 
 from reqtest.models.domain import Requirement, TestCase
@@ -120,10 +121,11 @@ def import_requirements_document(path: Path) -> list[Requirement]:
         chunks = []
         for node in doc.element.body:
             if node.tag == qn("w:p"):
-                chunks.append("".join(t.text or "" for t in node.iter(qn("w:t"))))
+                chunks.append(Paragraph(node, doc).text)
             elif node.tag == qn("w:tbl"):
                 for row in node.iter(qn("w:tr")):
-                    cells = ["".join(t.text or "" for t in c.iter(qn("w:t"))) for c in row.findall(qn("w:tc"))]
+                    cells = ["\n".join(Paragraph(p, doc).text for p in c.findall(qn("w:p")))
+                             for c in row.findall(qn("w:tc"))]
                     chunks.extend([": ".join(cells), ""])
         text = "\n".join(chunks)
     else:

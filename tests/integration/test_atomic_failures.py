@@ -8,10 +8,11 @@ from reqtest.llm.client import LLMClient, LLMError
 from reqtest.services.extraction import extract_project
 from reqtest.services.coverage import analyze_coverage
 from reqtest.services.generation import generate_tests, GenerationMode
+from extraction_fakes import clean_review
 
 
 @pytest.mark.integration
-def test_http_failure_on_second_requirement_rolls_back():
+def test_http_failure_on_second_requirement_preserves_first_result():
     project = demo_project()
     data = project.model_dump()
     data['requirements'].append(Requirement(id='R2', text=project.requirements[0].text).model_dump())
@@ -20,15 +21,22 @@ def test_http_failure_on_second_requirement_rolls_back():
     calls = []
     def handler(request):
         calls.append(request)
-        if len(calls) == 2:
+        messages = json.loads(request.content)['messages']
+        payload = json.loads(messages[1]['content'])
+        if payload.get('id') == 'R2':
             return httpx.Response(503, text='Server unavailable')
+        if 'elements' in payload:
+            return httpx.Response(200, json={'message': {'content': json.dumps(clean_review(payload))}})
         content = json.dumps({'elements': [dict(type=e.type.value, description=e.description,
                         source_ids=['F001']) for e in demo_project().elements]})
         return httpx.Response(200, json={'message': {'content': content}})
     client = LLMClient(LLMSettings(model='test'), httpx.MockTransport(handler))
-    with pytest.raises(LLMError, match='HTTP 503'):
-        extract_project(project, client)
-    assert len(calls) == 2
+    result = extract_project(project, client).project
+    assert len(result.elements) == 4
+    assert all(e.requirement_id != 'R2' for e in result.elements)
+    assert result.analysis_incomplete == ['R2']
+    assert '503' in '\n'.join(result.analysis_notes['R2'])
+    assert len(calls) == 5
     assert project.model_dump_json() == before
 
 
@@ -85,16 +93,21 @@ def test_invalid_second_validation_rolls_back_first_candidate():
 @pytest.mark.parametrize('change', [
     {'steps':['Вызов макроса __HAL_RCC_CRC_CLK_ENABLE()']},
     {'expected_result':'Макрос __HAL_RCC_CRC_CLK_ENABLE() вызван без аргументов'}])
-def test_screenshot_generation_defects_rejected_before_model_validation(change):
+def test_generation_hints_are_checked_semantically(change):
     test = {**proposal(), **change}
     class Client:
         settings = LLMSettings(model='test')
         calls = 0
         def complete(self, messages, schema):
             self.calls += 1
-            return json.dumps({'tests': [test]})
+            if self.calls == 1:
+                return json.dumps({'tests': [test]})
+            payload = json.loads(messages[-1]['content'])
+            assert payload['heuristic_notes']
+            return json.dumps(dict(consistent=False, sufficient_specification=True, duplicate=False,
+                                   rationale='Сценарий не наблюдает требуемый эффект компонента'))
     client = Client()
     result = generate_tests(demo_project(), client, GenerationMode.FULL)
     assert result.generated_count == 0
-    assert client.calls == 1
+    assert client.calls == 2
     assert 'Отклонено предложение' in result.project.generation_log[0].notes

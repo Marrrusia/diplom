@@ -3,7 +3,7 @@ import json
 import pytest
 from reqtest.models.domain import Project, Requirement, Element, ElementType, TestCase as Case
 from reqtest.services.coverage import analyze_coverage
-from reqtest.services.element_grounding import grounding_issues
+from reqtest.services.semantic_extraction import unsupported_literals
 from reqtest.services.extraction import ExtractedElement
 
 TEXT = ('При вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно '
@@ -77,9 +77,9 @@ def test_unrelated_numeric_constant_stays_required():
 @pytest.mark.parametrize('description,kind',[
     ('компонент должен сохранить value в поле currentLevel и вернуть STATUS_OK','действие'),
     ('Если value меньше 0 или больше 100, компонент должен вернуть STATUS_RANGE_ERROR и оставить currentLevel без изменения','ограничение')])
-def test_report_combined_elements_request_split(description,kind):
+def test_compound_description_is_not_rejected_by_literal_checker(description,kind):
     item=ExtractedElement(type=kind,description=description,source_fragment=description)
-    assert any('отдельными' in issue or 'отделите' in issue for issue in grounding_issues(item,TEXT))
+    assert not unsupported_literals(item.description, TEXT)
 
 
 def test_catalog_source_does_not_require_all_tokens_of_broad_sentence():

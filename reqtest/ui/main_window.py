@@ -1,5 +1,6 @@
 """Русскоязычный интерфейс импорта, анализа, генерации и ручной проверки."""
 import logging
+from reqtest import __version__
 from pathlib import Path
 from PySide6.QtGui import QAction
 from reqtest.ui.file_worker import FileWorker
@@ -12,7 +13,7 @@ from reqtest.ui.coverage_worker import CoverageWorker
 from reqtest.ui.generation_worker import GenerationWorker
 from reqtest.services.generation import GenerationMode, review_generated_test
 from reqtest.models.domain import TestSource, CoverageStatus
-from reqtest.services.review import review_test, review_element
+from reqtest.services.review import review_test, review_element, add_manual_element, confirm_extraction
 from reqtest.ui.edit_dialogs import TestEditorDialog, ElementEditorDialog
 from reqtest.ui.presentation import configure_table, fit_table, filter_table, readable_record, enhance_page
 from reqtest.services.coverage import active_elements, active_tests, matrix_status, coverage_summary, review_link
@@ -26,7 +27,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Интеллектуальный анализ покрытия требований")
+        self.setWindowTitle("Интеллектуальный анализ покрытия требований " + __version__)
         self.resize(1100, 720)
         self.project = Project(name="Новый проект")
         self.tables = {}
@@ -180,8 +181,8 @@ class MainWindow(QMainWindow):
                 layout.addWidget(self.cancel_button)
                 self.analysis_progress = QProgressBar()
                 layout.addWidget(self.analysis_progress)
-                self.elements_table = QTableWidget(0, 6)
-                self.elements_table.setHorizontalHeaderLabels(["ID", "Требование", "Категория", "Описание", "Цитата", "Проверка"])
+                self.elements_table = QTableWidget(0, 7)
+                self.elements_table.setHorizontalHeaderLabels(["ID", "Требование", "Категория", "Описание", "Цитата", "Проверка", "Допуск к анализу"])
                 self.elements_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
                 self.add_search(layout, self.elements_table, "elements")
                 layout.addWidget(self.elements_table)
@@ -190,7 +191,9 @@ class MainWindow(QMainWindow):
                 layout.addWidget(self.element_details)
                 self.elements_table.currentCellChanged.connect(lambda row, col, oldrow, oldcol: self.show_element(row))
                 self.elements_table.cellDoubleClicked.connect(lambda row, col: self.edit_selected_element())
-                for label, action in (("Редактировать выбранный элемент", self.edit_selected_element),
+                for label, action in (("Добавить элемент вручную", self.add_element),
+                    ("Подтвердить сверку полноты требования", self.confirm_requirement_extraction),
+                    ("Редактировать выбранный элемент", self.edit_selected_element),
                     ("Принять выбранный элемент", lambda: self.review_selected_element(True)),
                     ("Отклонить выбранный элемент", lambda: self.review_selected_element(False))):
                     edit_button = QPushButton(label)
@@ -233,6 +236,8 @@ class MainWindow(QMainWindow):
 
     def import_file(self, kind: str) -> None:
         """Выбрать файл и настройки; передать обработку импортёрам и сервису."""
+        if self.worker is not None:
+            return
         if kind not in ('requirements', 'test_cases'):
             QMessageBox.warning(self, 'Ошибка импорта', 'Неизвестный раздел импорта')
             return
@@ -308,6 +313,8 @@ class MainWindow(QMainWindow):
 
     def edit_requirement(self) -> None:
         """Редактировать выбранное требование с проверкой снимка проекта."""
+        if self.worker is not None:
+            return
         row = self.tables["requirements"].currentRow()
         if row < 0:
             QMessageBox.information(self, "Выбор требования", "Выберите строку требования")
@@ -415,7 +422,8 @@ class MainWindow(QMainWindow):
         self.elements_table.setRowCount(len(self.project.elements))
         for i, element in enumerate(self.project.elements):
             values = (element.id, element.requirement_id, element.type.value,
-                      element.description, element.source_fragment, element.review_status.value)
+                      element.description, element.source_fragment, element.review_status.value,
+                      'Требуется решение пользователя' if element.analysis_blocked else 'Доступен')
             for j, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setToolTip(value)
@@ -478,6 +486,10 @@ class MainWindow(QMainWindow):
             percent = "не определено" if row['percent'] is None else f"{row['percent']}%"
             lines.append(f"{name}: подтверждено {row['covered']}/{row['elements']}; покрытие {percent}; неподтверждённых/непокрытых {row['uncovered']}")
         lines.append(f"Отклонённых элементов (исключены из расчёта): {stats['rejected_elements']}")
+        lines.append(f"Спорных элементов (исключены до проверки): {stats['blocked_elements']}")
+        if stats['analysis_incomplete']:
+            lines.append('Полнота выделения не подтверждена для: ' + ', '.join(stats['analysis_incomplete']) +
+                         '. Проценты относятся только к доступным выделенным элементам.')
         self.summary_label.setText("\n".join(lines))
         self.show_link(self.matrix.currentRow(), self.matrix.currentColumn())
         if hasattr(self, "file_status"):
@@ -502,6 +514,8 @@ class MainWindow(QMainWindow):
 
     def review_selected_link(self, accepted: bool) -> None:
         """Передать ручное решение сервису и обновить процент."""
+        if self.worker is not None:
+            return
         row, column = self.matrix.currentRow(), self.matrix.currentColumn()
         if row < 0 or column < 0:
             QMessageBox.information(self, "Выбор", "Выберите ячейку матрицы")
@@ -575,6 +589,8 @@ class MainWindow(QMainWindow):
 
     def review_generated(self, accepted: bool) -> None:
         """Принять/отклонить предложение без автоматического подтверждения покрытия."""
+        if self.worker is not None:
+            return
         row = self.generated_table.currentRow()
         tests = [t for t in self.project.test_cases if t.source == TestSource.GENERATED]
         if not 0 <= row < len(tests):
@@ -633,7 +649,48 @@ class MainWindow(QMainWindow):
         if not 0 <= row < len(self.project.elements):
             QMessageBox.information(self, 'Выбор', 'Выберите элемент')
             return
-        self.project = review_element(self.project, self.project.elements[row].id, accepted)
+        try:
+            self.project = review_element(self.project, self.project.elements[row].id, accepted)
+        except ValueError as error:
+            QMessageBox.warning(self, 'Проверка элемента', str(error))
+            return
+        self.refresh_tables()
+
+    def add_element(self) -> None:
+        """Добавить пропущенный аспект через форму; отмена оставляет проект прежним."""
+        if self.worker is not None:
+            return
+        if not self.project.requirements:
+            QMessageBox.information(self, 'Добавление элемента', 'Сначала загрузите требования')
+            return
+        identifier, ok = QInputDialog.getItem(self, 'Добавление элемента', 'Требование',
+                                            [r.id for r in self.project.requirements], 0, False)
+        if not ok:
+            return
+        provisional, element_id = add_manual_element(self.project, identifier)
+        element = next(e for e in provisional.elements if e.id == element_id)
+        dialog = ElementEditorDialog(provisional, element, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.project = dialog.result_project
+            self.refresh_tables()
+
+    def confirm_requirement_extraction(self) -> None:
+        """Сохранить экспертную сверку отдельно от заключения LLM."""
+        if self.worker is not None or not self.project.requirements:
+            return
+        identifier, ok = QInputDialog.getItem(self, 'Сверка полноты', 'Требование',
+                                            [r.id for r in self.project.requirements], 0, False)
+        if not ok:
+            return
+        rationale, ok = QInputDialog.getMultiLineText(self, 'Сверка полноты',
+            'Сверьте все аспекты исходного требования, условия и ветви. Укажите обоснование и оставшиеся ограничения:')
+        if not ok:
+            return
+        try:
+            self.project = confirm_extraction(self.project, identifier, rationale)
+        except ValueError as error:
+            QMessageBox.warning(self, 'Сверка полноты', str(error))
+            return
         self.refresh_tables()
 
     def add_search(self, layout, table: QTableWidget, kind: str) -> None:
@@ -672,7 +729,7 @@ class MainWindow(QMainWindow):
         requirement = next(r for r in self.project.requirements if r.id == element.requirement_id)
         self.element_details.setPlainText(readable_record(element, {
             'id': 'Идентификатор', 'requirement_id': 'Требование', 'type': 'Категория',
-            'description': 'Описание', 'source_fragment': 'Цитата', 'review_status': 'Проверка', 'review_notes': 'Замечания к структуре элемента', 'condition_ids': 'Применимо при условиях', 'negated_condition_ids': 'Применимо при ложности условий'}) +
+            'description': 'Описание', 'source_fragment': 'Цитата', 'review_status': 'Проверка', 'analysis_blocked': 'Исключён до решения пользователя', 'review_notes': 'Замечания экспертизы', 'condition_ids': 'Применимо при условиях', 'negated_condition_ids': 'Применимо при ложности условий'}) +
             '\n\nИсходное требование:\n' + requirement.text +
             '\n\nСсылки на источники:\n' + ('\n'.join(f'{ref.source_id} [{ref.start}:{ref.end}]: {ref.text}' for ref in element.source_refs) or 'Старая версия или источник отредактирован вручную'))
 
@@ -725,7 +782,7 @@ class MainWindow(QMainWindow):
         dirty = self.project.model_dump_json() != self.saved_payload
         name = self.project_path.name if self.project_path else "Новый проект"
         self.file_status.setText(name + (" — есть изменения" if dirty else ""))
-        self.setWindowTitle("Интеллектуальный анализ покрытия требований — " + name + (" *" if dirty else ""))
+        self.setWindowTitle("Интеллектуальный анализ покрытия требований " + __version__ + " — " + name + (" *" if dirty else ""))
 
     def confirm_discard(self) -> bool:
         """Предотвратить потерю изменений; сохранение выполняется отдельной командой."""

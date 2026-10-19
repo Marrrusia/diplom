@@ -16,6 +16,7 @@ from reqtest.services.review import review_test, edit_test
 from reqtest.storage.sqlite_project import save_project, load_project
 from reqtest.exporters.xlsx_report import export_report
 from reqtest.llm.client import LLMClient, LLMError
+from extraction_fakes import clean_review
 
 
 class ProtocolServer:
@@ -36,6 +37,8 @@ class ProtocolServer:
             result = {'elements': [{'type': e.type.value, 'description': e.description,
                 'source_ids': ['F001']} for e in demo_project().elements],
                 'specification_gaps': ['Поведение при Instance != CRC не определено']}
+        elif prompt.startswith('Проверь выделение'):
+            result = clean_review(payload)
         elif prompt.startswith('Оцени покрытие'):
             test, element = payload['test_case'], payload['element']
             # Импортированный частичный тест подтверждает только два условия.

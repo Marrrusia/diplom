@@ -10,6 +10,8 @@ def merge_import(project: Project, items: list[Requirement] | list[TestCase], ki
     data = project.model_dump()
     data['initial_coverage'] = None
     data[kind].extend(item.model_dump() for item in items)
+    if kind == 'requirements':
+        data['analysis_incomplete'] = list(dict.fromkeys(data['analysis_incomplete'] + [item.id for item in items]))
     return Project.model_validate(data)
 
 
