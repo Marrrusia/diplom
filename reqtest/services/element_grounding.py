@@ -47,6 +47,13 @@ def is_specification_gap(description: str) -> bool:
     return bool(re.search(r'(?:не\s+определен[оыа]?|не\s+определён[оыа]?|не\s+задаются|не\s+указаны)', description, re.IGNORECASE))
 
 
+def is_gap_only_source(text: str) -> bool:
+    """Не исключать смешанный источник с явно заданным обязательным действием."""
+    return is_specification_gap(text) and not re.search(
+        r'\b(?:должен|должна|должно|должны|необходимо|вызвать|вернуть|сохранить|включить)\b',
+        text, re.IGNORECASE)
+
+
 def split_grounding_issues(issues: list[str]) -> tuple[list[str], list[str]]:
     """Фактическая ошибка блокирует ответ; качество разбиения требует человека."""
     structural = ('Разделите независимые результаты', 'Условие ветви отделите')

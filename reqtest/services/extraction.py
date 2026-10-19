@@ -7,7 +7,7 @@ from reqtest.llm.client import LLMClient, LLMError
 from reqtest.services.source_catalog import build_source_catalog
 from reqtest.services.atomic_elements import split_description
 from reqtest.services.branch_context import attach_branch_context
-from reqtest.services.element_grounding import grounding_issues, is_specification_gap, split_grounding_issues
+from reqtest.services.element_grounding import grounding_issues, is_specification_gap, is_gap_only_source, split_grounding_issues
 from reqtest.services.extraction_checks import missing_aspects, required_aspects
 
 
@@ -85,7 +85,7 @@ def extract_project(project: Project, client: LLMClient,
             except ValidationError:
                 problems.append('Ответ не соответствует JSON-схеме: нужны type, description, source_ids; source_fragment запрещён')
             else:
-                gaps = list(answer.specification_gaps)
+                gaps = list(answer.specification_gaps) + [ref.text for ref in catalog if is_gap_only_source(ref.text)]
                 seen = set()
                 expanded = []
                 split_count = 0
@@ -101,12 +101,17 @@ def extract_project(project: Project, client: LLMClient,
                         problems.append(f'Элемент {number}: неизвестные или повторные source_ids {item.source_ids}')
                         continue
                     refs = sorted([by_id[sid] for sid in item.source_ids], key=lambda ref: ref.start)
+                    if not is_specification_gap(item.description):
+                        defined_refs = [ref for ref in refs if not is_gap_only_source(ref.text)]
+                        if defined_refs:
+                            refs = defined_refs
                     supporting_text = '\n'.join(ref.text for ref in refs)
                     draft = ExtractedElement(type=item.type, description=item.description, source_fragment=supporting_text)
                     issues, review_notes = split_grounding_issues(grounding_issues(draft, supporting_text))
                     # Нельзя описывать неподтверждённое поведение, ссылаясь на чужой источник.
                     if issues:
-                        problems.extend(f'Элемент {number}: {issue}' for issue in issues)
+                        problems.extend(f'Элемент {number}: {issue}. Выберите source_ids с явно заданным поведением; '
+                                        'неопределённое поведение укажите в specification_gaps' for issue in issues)
                         continue
                     if is_specification_gap(item.description):
                         gaps.append(item.description)
