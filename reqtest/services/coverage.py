@@ -22,7 +22,14 @@ class SemanticDecision(StrictModel):
 
 def active_elements(project: Project) -> list[Element]:
     """Отклонённые элементы хранятся, но не анализируются как проверяемые аспекты."""
-    return [e for e in project.elements if e.review_status != ReviewStatus.REJECTED]
+    blocked = {e.id for e in project.elements if e.analysis_blocked}
+    for _ in project.elements:
+        previous = len(blocked)
+        blocked.update(e.id for e in project.elements if any(
+            c in blocked for c in e.condition_ids + e.negated_condition_ids))
+        if len(blocked) == previous:
+            break
+    return [e for e in project.elements if e.id not in blocked and e.review_status != ReviewStatus.REJECTED]
 
 
 def active_tests(project: Project) -> list[TestCase]:
@@ -78,7 +85,7 @@ def analyze_coverage(project: Project, client: LLMClient,
                      cancelled: Callable[[], bool] | None = None) -> Project:
     """Атомарно заменить анализ; не подтверждать решения модели автоматически."""
     if not active_elements(project):
-        raise LLMError('Сначала выделите проверяемые элементы')
+        raise LLMError('Нет доступных проверяемых элементов. Выделите элементы либо проверьте спорные предложения вручную')
     tests = active_tests(project)
     requirements = {r.id: r for r in project.requirements}
     pairs = [(e, t) for e in active_elements(project) for t in tests if e.requirement_id == t.requirement_id]
@@ -200,7 +207,11 @@ def coverage_summary(project: Project) -> dict:
         covered = sum(e.id in confirmed for e in elements)
         return {'elements': count, 'covered': covered, 'uncovered': count - covered,
                 'percent': round(100 * covered / count, 2) if count else None}
-    return {'total': stats(active_elements(project)), 'rejected_elements': len(project.elements) - len(active_elements(project)), 'requirements': {
+    return {'total': stats(active_elements(project)),
+            'rejected_elements': sum(e.review_status == ReviewStatus.REJECTED for e in project.elements),
+            'blocked_elements': sum(e.review_status != ReviewStatus.REJECTED for e in project.elements if e not in active_elements(project)),
+            'analysis_incomplete': project.analysis_incomplete,
+            'requirements': {
         r.id: stats([e for e in active_elements(project) if e.requirement_id == r.id]) for r in project.requirements}}
 
 

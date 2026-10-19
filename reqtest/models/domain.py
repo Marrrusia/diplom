@@ -63,6 +63,7 @@ class Element(StrictModel):
     condition_ids: list[str] = Field(default_factory=list)
     negated_condition_ids: list[str] = Field(default_factory=list)
     review_status: ReviewStatus = ReviewStatus.PENDING
+    analysis_blocked: bool = False
 
 
 class TestCase(StrictModel):
@@ -154,6 +155,7 @@ class Project(StrictModel):
     generation_log: list[GenerationEntry] = Field(default_factory=list)
     initial_coverage: CoverageBaseline | None = None
     analysis_notes: dict[str, list[str]] = Field(default_factory=dict)
+    analysis_incomplete: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_references(self) -> "Project":
@@ -162,6 +164,8 @@ class Project(StrictModel):
             if len(ids) != len(set(ids)):
                 raise ValueError("Идентификаторы внутри набора должны быть уникальными")
         requirements = {r.id: r for r in self.requirements}
+        if any(identifier not in requirements for identifier in self.analysis_incomplete):
+            raise ValueError("Неизвестное требование в замечаниях полноты анализа")
         elements = {e.id: e for e in self.elements}
         tests = {t.id: t for t in self.test_cases}
         for item in [*self.elements, *self.test_cases, *self.generation_log]:
