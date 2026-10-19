@@ -233,6 +233,8 @@ class MainWindow(QMainWindow):
 
     def import_file(self, kind: str) -> None:
         """Выбрать файл и настройки; передать обработку импортёрам и сервису."""
+        if self.worker is not None:
+            return
         if kind not in ('requirements', 'test_cases'):
             QMessageBox.warning(self, 'Ошибка импорта', 'Неизвестный раздел импорта')
             return
@@ -308,6 +310,8 @@ class MainWindow(QMainWindow):
 
     def edit_requirement(self) -> None:
         """Редактировать выбранное требование с проверкой снимка проекта."""
+        if self.worker is not None:
+            return
         row = self.tables["requirements"].currentRow()
         if row < 0:
             QMessageBox.information(self, "Выбор требования", "Выберите строку требования")
@@ -502,6 +506,8 @@ class MainWindow(QMainWindow):
 
     def review_selected_link(self, accepted: bool) -> None:
         """Передать ручное решение сервису и обновить процент."""
+        if self.worker is not None:
+            return
         row, column = self.matrix.currentRow(), self.matrix.currentColumn()
         if row < 0 or column < 0:
             QMessageBox.information(self, "Выбор", "Выберите ячейку матрицы")
@@ -575,6 +581,8 @@ class MainWindow(QMainWindow):
 
     def review_generated(self, accepted: bool) -> None:
         """Принять/отклонить предложение без автоматического подтверждения покрытия."""
+        if self.worker is not None:
+            return
         row = self.generated_table.currentRow()
         tests = [t for t in self.project.test_cases if t.source == TestSource.GENERATED]
         if not 0 <= row < len(tests):

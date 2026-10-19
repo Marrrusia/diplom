@@ -115,6 +115,9 @@ def generate_tests(project: Project, client: LLMClient, mode: GenerationMode,
                 for rid, stats in summary['requirements'].items()}}
     proposed: list[TestCase] = []
     logs = []
+    valid_test_ids = {test.id for test in active_tests(project)}
+    covered_ids = {link.element_id for link in project.coverage
+                   if link.confirmed and link.test_case_id in valid_test_ids}
     requirements = [r for r in project.requirements if any(e.requirement_id == r.id for e in targets)]
     for i, requirement in enumerate(requirements):
         if cancelled and cancelled():
@@ -126,7 +129,8 @@ def generate_tests(project: Project, client: LLMClient, mode: GenerationMode,
         schema = GenerationResponse.model_json_schema()
         payload = {'requirement': requirement.model_dump(), 'target_elements': [e.model_dump() for e in requested],
                    'all_elements': [e.model_dump() for e in all_elements],
-                   'covered_element_ids': [e.id for e in all_elements if e.id not in target_ids],
+                   'covered_element_ids': [e.id for e in active_elements(project)
+                                           if e.requirement_id == requirement.id and e.id in covered_ids],
                    'existing_tests': [t.model_dump() for t in known], 'mode': mode.value}
         answer = _parse(client.complete([
             {'role': 'system', 'content': SYSTEM + '\nСхема: ' + json.dumps(schema, ensure_ascii=False)},

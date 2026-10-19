@@ -54,7 +54,8 @@ def invalidate_requirement(data: dict, requirement_id: str) -> None:
     element_ids = {e['id'] for e in data['elements'] if e['requirement_id'] == requirement_id}
     data['coverage'] = [link for link in data['coverage'] if link['element_id'] not in element_ids]
     for test in data['test_cases']:
-        if test['requirement_id'] == requirement_id and test['source'] == TestSource.GENERATED:
+        if (test['requirement_id'] == requirement_id and test['source'] == TestSource.GENERATED
+                and test['review_status'] != ReviewStatus.REJECTED):
             test['review_status'] = ReviewStatus.PENDING
 
 
