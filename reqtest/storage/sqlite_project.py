@@ -1,5 +1,6 @@
 """SQLite-файл проекта: проверенный снимок, атомарная замена, без настроек LLM."""
 import os
+import json
 from contextlib import closing
 import sqlite3
 import tempfile
@@ -25,7 +26,12 @@ def load_project(path: Path) -> Project:
             rows = connection.execute('SELECT payload FROM project_snapshot WHERE id=1').fetchall()
             if len(rows) != 1:
                 raise ProjectFileError('В файле отсутствует снимок проекта')
-            project = Project.model_validate_json(rows[0][0])
+            payload = json.loads(rows[0][0])
+            if 'analysis_incomplete' not in payload:
+                payload['analysis_incomplete']=[r['id'] for r in payload.get('requirements',[])]
+                for rid in payload['analysis_incomplete']:
+                    payload.setdefault('analysis_notes',{}).setdefault(rid,[]).append('В старом проекте не записана проверка полноты; требуется ручная проверка')
+            project = Project.model_validate(payload)
             if project.schema_version != 1:
                 raise ProjectFileError('Версия данных проекта не поддерживается')
             return project

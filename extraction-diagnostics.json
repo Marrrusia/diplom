@@ -1,0 +1,470 @@
+{
+  "version": "0.3.7",
+  "requirements": [
+    {
+      "id": "DEMO_MASK_005",
+      "text": "При вызове UpdateFlags компонент должен вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F). В результате биты вне маски 0x0F должны сохранить значения old_flags, а биты внутри маски должны принять значения requested_flags.",
+      "type": null,
+      "source": "C:\\Users\\Пользователь\\PycharmProjects\\diplom\\examples\\demo_suite\\small_sets\\DEMO_MASK_005\\requirements.txt",
+      "metadata": {}
+    },
+    {
+      "id": "DEMO_MODE_002",
+      "text": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC. В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение. Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено.",
+      "type": null,
+      "source": "C:\\Users\\Пользователь\\PycharmProjects\\diplom\\examples\\demo_suite\\small_sets\\DEMO_MODE_002\\requirements.txt",
+      "metadata": {}
+    }
+  ],
+  "attempts": [
+    {
+      "requirement_id": "DEMO_MASK_005",
+      "attempt": 1,
+      "response": "{\n  \"elements\": [\n    {\n      \"type\": \"действие\",\n      \"description\": \"Компонент вычисляет переменную new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F).\",\n      \"source_ids\": [\n        \"F001\",\n        \"F002\"\n      ],\n      \"context_ids\": [\n        \"C001\"\n      ],\n      \"negated_context_ids\": []\n    }\n  ],\n  \"specification_gaps\": []\n}",
+      "error": "",
+      "model": "qwen/qwen3.8-27b",
+      "stage": "direct"
+    },
+    {
+      "requirement_id": "DEMO_MODE_002",
+      "attempt": 1,
+      "response": "{\n  \"elements\": [\n    {\n      \"type\": \"действие\",\n      \"description\": \"Возврат значения STATUS_NOT_READY\",\n      \"source_ids\": [\n        \"F001\"\n      ],\n      \"context_ids\": [\n        \"C002\"\n      ],\n      \"negated_context_ids\": []\n    },\n    {\n      \"type\": \"ограничение\",\n      \"description\": \"Не вызывать StartADC\",\n      \"source_ids\": [\n        \"F001\"\n      ],\n      \"context_ids\": [\n        \"C002\"\n      ],\n      \"negated_context_ids\": []\n    },\n    {\n      \"type\": \"действие\",\n      \"description\": \"Вызвать StartADC() без аргументов\",\n      \"source_ids\": [\n        \"F002\"\n      ],\n      \"context_ids\": [\n        \"C004\"\n      ],\n      \"negated_context_ids\": [\n        \"C003\"\n      ]\n    },\n    {\n      \"type\": \"действие\",\n      \"description\": \"Вызвать ReadADC() без аргументов\",\n      \"source_ids\": [\n        \"F002\"\n      ],\n      \"context_ids\": [\n        \"C004\",\n        \"C005\"\n      ],\n      \"negated_context_ids\": [\n        \"C003\"\n      ]\n    },\n    {\n      \"type\": \"действие\",\n      \"description\": \"Возврат значения, возвращенного ReadADC()\",\n      \"source_ids\": [\n        \"F002\"\n      ],\n      \"context_ids\": [\n        \"C004\",\n        \"C005\"\n      ],\n      \"negated_context_ids\": [\n        \"C003\"\n      ]\n    }\n  ],\n  \"specification_gaps\": [\n    \"Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено.\"\n  ]\n}",
+      "error": "",
+      "model": "qwen/qwen3.8-27b",
+      "stage": "direct"
+    }
+  ],
+  "notes": {
+    "DEMO_MASK_005": [
+      "DEMO_MASK_005::E002: Условие из исходного текста; применимость требует ручного подтверждения"
+    ],
+    "DEMO_MODE_002": [
+      "Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено.",
+      "DEMO_MODE_002::E006: Условие из исходного текста; применимость требует ручного подтверждения",
+      "DEMO_MODE_002::E007: Условие из исходного текста; применимость требует ручного подтверждения",
+      "DEMO_MODE_002::E008: Условие из исходного текста; применимость требует ручного подтверждения",
+      "DEMO_MODE_002::E009: Условие из исходного текста; применимость требует ручного подтверждения"
+    ]
+  },
+  "elements": [
+    {
+      "id": "DEMO_MASK_005::E001",
+      "requirement_id": "DEMO_MASK_005",
+      "type": "действие",
+      "description": "Компонент вычисляет переменную new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F).",
+      "source_fragment": "При вызове UpdateFlags компонент должен вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F). В результате биты вне маски 0x0F должны сохранить значения old_flags, а биты внутри маски должны принять значения requested_flags.",
+      "source_refs": [
+        {
+          "source_id": "C001",
+          "start": 0,
+          "end": 22,
+          "text": "При вызове UpdateFlags"
+        },
+        {
+          "source_id": "F001",
+          "start": 0,
+          "end": 118,
+          "text": "При вызове UpdateFlags компонент должен вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F)."
+        },
+        {
+          "source_id": "F002",
+          "start": 119,
+          "end": 249,
+          "text": "В результате биты вне маски 0x0F должны сохранить значения old_flags, а биты внутри маски должны принять значения requested_flags."
+        }
+      ],
+      "review_notes": [],
+      "condition_ids": [
+        "DEMO_MASK_005::E002"
+      ],
+      "negated_condition_ids": [],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": "При вызове UpdateFlags"
+    },
+    {
+      "id": "DEMO_MASK_005::E002",
+      "requirement_id": "DEMO_MASK_005",
+      "type": "условие",
+      "description": "При вызове UpdateFlags",
+      "source_fragment": "При вызове UpdateFlags",
+      "source_refs": [
+        {
+          "source_id": "C001",
+          "start": 0,
+          "end": 22,
+          "text": "При вызове UpdateFlags"
+        }
+      ],
+      "review_notes": [
+        "Условие из исходного текста; применимость требует ручного подтверждения"
+      ],
+      "condition_ids": [],
+      "negated_condition_ids": [],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": ""
+    },
+    {
+      "id": "DEMO_MODE_002::E001",
+      "requirement_id": "DEMO_MODE_002",
+      "type": "действие",
+      "description": "Возврат значения STATUS_NOT_READY",
+      "source_fragment": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC.",
+      "source_refs": [
+        {
+          "source_id": "C002",
+          "start": 0,
+          "end": 38,
+          "text": "При вызове ReadSample в режиме STANDBY"
+        },
+        {
+          "source_id": "F001",
+          "start": 0,
+          "end": 104,
+          "text": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC."
+        }
+      ],
+      "review_notes": [],
+      "condition_ids": [
+        "DEMO_MODE_002::E006"
+      ],
+      "negated_condition_ids": [],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": "При вызове ReadSample в режиме STANDBY"
+    },
+    {
+      "id": "DEMO_MODE_002::E002",
+      "requirement_id": "DEMO_MODE_002",
+      "type": "ограничение",
+      "description": "Не вызывать StartADC",
+      "source_fragment": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC.",
+      "source_refs": [
+        {
+          "source_id": "C002",
+          "start": 0,
+          "end": 38,
+          "text": "При вызове ReadSample в режиме STANDBY"
+        },
+        {
+          "source_id": "F001",
+          "start": 0,
+          "end": 104,
+          "text": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC."
+        }
+      ],
+      "review_notes": [],
+      "condition_ids": [
+        "DEMO_MODE_002::E006"
+      ],
+      "negated_condition_ids": [],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": "При вызове ReadSample в режиме STANDBY"
+    },
+    {
+      "id": "DEMO_MODE_002::E003",
+      "requirement_id": "DEMO_MODE_002",
+      "type": "действие",
+      "description": "Вызвать StartADC() без аргументов",
+      "source_fragment": "в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC. В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение.",
+      "source_refs": [
+        {
+          "source_id": "C003",
+          "start": 22,
+          "end": 38,
+          "text": "в режиме STANDBY"
+        },
+        {
+          "source_id": "C004",
+          "start": 105,
+          "end": 120,
+          "text": "В режиме ACTIVE"
+        },
+        {
+          "source_id": "F002",
+          "start": 105,
+          "end": 261,
+          "text": "В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение."
+        }
+      ],
+      "review_notes": [],
+      "condition_ids": [
+        "DEMO_MODE_002::E007"
+      ],
+      "negated_condition_ids": [
+        "DEMO_MODE_002::E008"
+      ],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": "В режиме ACTIVE; НЕ (в режиме STANDBY)"
+    },
+    {
+      "id": "DEMO_MODE_002::E004",
+      "requirement_id": "DEMO_MODE_002",
+      "type": "действие",
+      "description": "Вызвать ReadADC() без аргументов",
+      "source_fragment": "в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC. В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение.",
+      "source_refs": [
+        {
+          "source_id": "C003",
+          "start": 22,
+          "end": 38,
+          "text": "в режиме STANDBY"
+        },
+        {
+          "source_id": "C004",
+          "start": 105,
+          "end": 120,
+          "text": "В режиме ACTIVE"
+        },
+        {
+          "source_id": "F002",
+          "start": 105,
+          "end": 261,
+          "text": "В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение."
+        },
+        {
+          "source_id": "C005",
+          "start": 173,
+          "end": 195,
+          "text": "если ADC_READY равно 1"
+        }
+      ],
+      "review_notes": [],
+      "condition_ids": [
+        "DEMO_MODE_002::E007",
+        "DEMO_MODE_002::E009"
+      ],
+      "negated_condition_ids": [
+        "DEMO_MODE_002::E008"
+      ],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": "В режиме ACTIVE; если ADC_READY равно 1; НЕ (в режиме STANDBY)"
+    },
+    {
+      "id": "DEMO_MODE_002::E005",
+      "requirement_id": "DEMO_MODE_002",
+      "type": "действие",
+      "description": "Возврат значения, возвращенного ReadADC()",
+      "source_fragment": "в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC. В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение.",
+      "source_refs": [
+        {
+          "source_id": "C003",
+          "start": 22,
+          "end": 38,
+          "text": "в режиме STANDBY"
+        },
+        {
+          "source_id": "C004",
+          "start": 105,
+          "end": 120,
+          "text": "В режиме ACTIVE"
+        },
+        {
+          "source_id": "F002",
+          "start": 105,
+          "end": 261,
+          "text": "В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение."
+        },
+        {
+          "source_id": "C005",
+          "start": 173,
+          "end": 195,
+          "text": "если ADC_READY равно 1"
+        }
+      ],
+      "review_notes": [],
+      "condition_ids": [
+        "DEMO_MODE_002::E007",
+        "DEMO_MODE_002::E009"
+      ],
+      "negated_condition_ids": [
+        "DEMO_MODE_002::E008"
+      ],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": "В режиме ACTIVE; если ADC_READY равно 1; НЕ (в режиме STANDBY)"
+    },
+    {
+      "id": "DEMO_MODE_002::E006",
+      "requirement_id": "DEMO_MODE_002",
+      "type": "условие",
+      "description": "При вызове ReadSample в режиме STANDBY",
+      "source_fragment": "При вызове ReadSample в режиме STANDBY",
+      "source_refs": [
+        {
+          "source_id": "C002",
+          "start": 0,
+          "end": 38,
+          "text": "При вызове ReadSample в режиме STANDBY"
+        }
+      ],
+      "review_notes": [
+        "Условие из исходного текста; применимость требует ручного подтверждения"
+      ],
+      "condition_ids": [],
+      "negated_condition_ids": [],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": ""
+    },
+    {
+      "id": "DEMO_MODE_002::E007",
+      "requirement_id": "DEMO_MODE_002",
+      "type": "условие",
+      "description": "В режиме ACTIVE",
+      "source_fragment": "В режиме ACTIVE",
+      "source_refs": [
+        {
+          "source_id": "C004",
+          "start": 105,
+          "end": 120,
+          "text": "В режиме ACTIVE"
+        }
+      ],
+      "review_notes": [
+        "Условие из исходного текста; применимость требует ручного подтверждения"
+      ],
+      "condition_ids": [],
+      "negated_condition_ids": [],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": ""
+    },
+    {
+      "id": "DEMO_MODE_002::E008",
+      "requirement_id": "DEMO_MODE_002",
+      "type": "условие",
+      "description": "в режиме STANDBY",
+      "source_fragment": "в режиме STANDBY",
+      "source_refs": [
+        {
+          "source_id": "C003",
+          "start": 22,
+          "end": 38,
+          "text": "в режиме STANDBY"
+        }
+      ],
+      "review_notes": [
+        "Условие из исходного текста; применимость требует ручного подтверждения"
+      ],
+      "condition_ids": [],
+      "negated_condition_ids": [],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": ""
+    },
+    {
+      "id": "DEMO_MODE_002::E009",
+      "requirement_id": "DEMO_MODE_002",
+      "type": "условие",
+      "description": "если ADC_READY равно 1",
+      "source_fragment": "если ADC_READY равно 1",
+      "source_refs": [
+        {
+          "source_id": "C005",
+          "start": 173,
+          "end": 195,
+          "text": "если ADC_READY равно 1"
+        }
+      ],
+      "review_notes": [
+        "Условие из исходного текста; применимость требует ручного подтверждения"
+      ],
+      "condition_ids": [],
+      "negated_condition_ids": [],
+      "review_status": "ожидает проверки",
+      "analysis_blocked": false,
+      "applicability": ""
+    }
+  ],
+  "catalogs": {
+    "DEMO_MASK_005": {
+      "sources": [
+        {
+          "source_id": "F001",
+          "start": 0,
+          "end": 118,
+          "text": "При вызове UpdateFlags компонент должен вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F)."
+        },
+        {
+          "source_id": "F002",
+          "start": 119,
+          "end": 249,
+          "text": "В результате биты вне маски 0x0F должны сохранить значения old_flags, а биты внутри маски должны принять значения requested_flags."
+        }
+      ],
+      "contexts": [
+        {
+          "source_id": "C001",
+          "start": 0,
+          "end": 22,
+          "text": "При вызове UpdateFlags"
+        }
+      ]
+    },
+    "DEMO_MODE_002": {
+      "sources": [
+        {
+          "source_id": "F001",
+          "start": 0,
+          "end": 104,
+          "text": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC."
+        },
+        {
+          "source_id": "F002",
+          "start": 105,
+          "end": 261,
+          "text": "В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение."
+        },
+        {
+          "source_id": "F003",
+          "start": 262,
+          "end": 332,
+          "text": "Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено."
+        }
+      ],
+      "contexts": [
+        {
+          "source_id": "C001",
+          "start": 0,
+          "end": 21,
+          "text": "При вызове ReadSample"
+        },
+        {
+          "source_id": "C002",
+          "start": 0,
+          "end": 38,
+          "text": "При вызове ReadSample в режиме STANDBY"
+        },
+        {
+          "source_id": "C003",
+          "start": 22,
+          "end": 38,
+          "text": "в режиме STANDBY"
+        },
+        {
+          "source_id": "C004",
+          "start": 105,
+          "end": 120,
+          "text": "В режиме ACTIVE"
+        },
+        {
+          "source_id": "C005",
+          "start": 173,
+          "end": 195,
+          "text": "если ADC_READY равно 1"
+        },
+        {
+          "source_id": "C006",
+          "start": 272,
+          "end": 287,
+          "text": "в режиме ACTIVE"
+        }
+      ]
+    }
+  }
+}

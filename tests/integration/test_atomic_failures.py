@@ -22,8 +22,7 @@ def test_http_failure_on_second_requirement_rolls_back():
         calls.append(request)
         if len(calls) == 2:
             return httpx.Response(503, text='Server unavailable')
-        content = json.dumps({'elements': [dict(type=e.type.value, description=e.description,
-                        source_ids=['F001']) for e in demo_project().elements]})
+        content = json.dumps({'obligations': [dict(statement=e.description,conditions=[],source_fragment=project.requirements[0].text) for e in demo_project().elements], 'specification_gaps':[]})
         return httpx.Response(200, json={'message': {'content': content}})
     client = LLMClient(LLMSettings(model='test'), httpx.MockTransport(handler))
     with pytest.raises(LLMError, match='HTTP 503'):
@@ -44,7 +43,7 @@ def test_cancel_after_first_pair_rolls_back_all_links():
         calls = 0
         def complete(self, messages, schema):
             self.calls += 1
-            return json.dumps({'status': 'не покрыт', 'rationale': 'Недостаточно доказательств', 'confidence': 0.9})
+            return json.dumps({'status': 'не покрыт', 'rationale': 'Недостаточно доказательств', 'confidence': 0.9, 'precondition_evidence': [], 'step_evidence': [], 'result_evidence': []})
     client = Client()
     with pytest.raises(LLMError, match='отменён'):
         analyze_coverage(project, client, cancelled=lambda: client.calls > 0)

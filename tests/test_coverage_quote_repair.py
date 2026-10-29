@@ -81,3 +81,47 @@ def test_missing_proof_can_be_reported_without_fabrication():
     result=analyze_coverage(project(),Client())
     assert result.coverage[0].status.value=='не покрыт'
     assert not result.coverage[0].confirmed
+
+
+@pytest.mark.parametrize('field',['step_evidence','result_evidence'])
+def test_blank_evidence_is_absence_not_invented_quote(field):
+    class Client:
+        calls=0
+        def complete(self,messages,schema):
+            self.calls+=1
+            return response(**{field:['','  ','\n\t']})
+    client=Client();original=project();before=original.model_dump_json()
+    result=analyze_coverage(original,client)
+    assert client.calls==1
+    assert len(result.coverage)==1
+    assert result.coverage[0].status.value=='требует проверки'
+    assert 'Нет цитат действий или ожидаемого результата' in result.coverage[0].rationale
+    assert not result.coverage[0].confirmed
+    assert original.model_dump_json()==before
+
+
+def test_blank_entries_do_not_discard_valid_evidence():
+    class Client:
+        calls=0
+        def complete(self,messages,schema):
+            self.calls+=1
+            return response(step_evidence=['','Вызвать HAL_CRC_MspInit','  '])
+    client=Client();result=analyze_coverage(project(),client)
+    assert client.calls==1
+    evidence=json.loads(result.coverage[0].rationale.split('Цитаты теста: ')[1].split('\n')[0])
+    assert evidence['steps']==['Вызвать HAL_CRC_MspInit']
+
+
+def test_blank_evidence_does_not_stop_later_pairs():
+    original=project();data=original.model_dump()
+    second=dict(data['test_cases'][0]);second['id']='T2';data['test_cases'].append(second)
+    original=Project.model_validate(data)
+    class Client:
+        calls=0
+        def complete(self,messages,schema):
+            self.calls+=1
+            return response(step_evidence=['']) if self.calls==1 else response()
+    client=Client();result=analyze_coverage(original,client)
+    assert client.calls==2
+    assert [link.test_case_id for link in result.coverage]==['T1','T2']
+    assert result.coverage[0].status.value=='требует проверки'

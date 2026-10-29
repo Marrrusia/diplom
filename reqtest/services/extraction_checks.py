@@ -2,7 +2,8 @@
 import re
 from dataclasses import dataclass
 from reqtest.models.domain import ElementType
-from reqtest.services.element_grounding import technical_facts
+from reqtest.services.element_grounding import technical_facts, is_specification_gap
+from reqtest.services.source_catalog import build_source_catalog
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,10 @@ class RequiredAspect:
 
 def required_aspects(text: str) -> list[RequiredAspect]:
     """Распознать поддерживаемые явные формулировки; это не общий NLP-анализ."""
+    # Pure gap statements do not create additional required test behavior.
+    chunks = build_source_catalog(text)
+    text = '\n'.join(r.text for r in chunks if not (
+        is_specification_gap(r.text) and not re.search(r'\b(?:должен|должны|необходимо|shall|must)\b', r.text, re.I)))
     aspects = []
     for match in re.finditer(
         r'При\s+вызове\s+(?:(?:подкомпонента|функции|метода)\s+)?'
@@ -38,14 +43,18 @@ def required_aspects(text: str) -> list[RequiredAspect]:
         aspects.append(RequiredAspect(ElementType.MODE, match.group(0), 'режим функционирования'))
     for match in re.finditer(r'не более \d+ раз', text, re.IGNORECASE):
         aspects.append(RequiredAspect(ElementType.LOOP, match.group(0), 'предел повторений цикла'))
-    return aspects
+    unique = {}
+    for aspect in aspects:
+        key = (aspect.type, re.sub(r'\s+', ' ', aspect.fragment).strip().casefold())
+        unique.setdefault(key, aspect)
+    return list(unique.values())
 
 
 def missing_aspects(text: str, elements) -> list[RequiredAspect]:
     """Аспект должен присутствовать в своей категории, а не только в другом элементе."""
     return [aspect for aspect in required_aspects(text) if not any(
         item.type == aspect.type
-        and re.sub(r"^(?:если|необходимо|должен)\s+", "", aspect.fragment, flags=re.IGNORECASE) in item.source_fragment
+        and re.sub(r"^(?:если|необходимо|должен)\s+", "", aspect.fragment, flags=re.IGNORECASE).casefold() in item.source_fragment.casefold()
         and (aspect.description_token is None or aspect.description_token in item.description)
         and (aspect.type != ElementType.CONDITION or technical_facts(aspect.fragment) <= technical_facts(item.description))
         for item in elements

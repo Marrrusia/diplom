@@ -15,14 +15,14 @@ class SemanticDecision(StrictModel):
     status: CoverageStatus
     rationale: str = Field(min_length=1)
     confidence: float = Field(ge=0, le=1, allow_inf_nan=False)
-    precondition_evidence: list[str] = Field(default_factory=list)
-    step_evidence: list[str] = Field(default_factory=list)
-    result_evidence: list[str] = Field(default_factory=list)
+    precondition_evidence: list[str]
+    step_evidence: list[str]
+    result_evidence: list[str]
 
 
 def active_elements(project: Project) -> list[Element]:
     """Отклонённые элементы хранятся, но не анализируются как проверяемые аспекты."""
-    return [e for e in project.elements if e.review_status != ReviewStatus.REJECTED]
+    return [e for e in project.elements if e.review_status != ReviewStatus.REJECTED and not e.analysis_blocked]
 
 
 def active_tests(project: Project) -> list[TestCase]:
@@ -73,11 +73,13 @@ all_false — ложны. Если входы противоречат прим�
 Все предложения модели требуют независимой ручной проверки.'''
 
 
-def analyze_coverage(project: Project, client: LLMClient,
+def _analyze_coverage(project: Project, client: LLMClient,
                      progress: Callable[[int, int], None] | None = None,
                      cancelled: Callable[[], bool] | None = None) -> Project:
     """Атомарно заменить анализ; не подтверждать решения модели автоматически."""
     if not active_elements(project):
+        if any(e.analysis_blocked and e.review_status != ReviewStatus.REJECTED for e in project.elements):
+            raise LLMError('Сначала исправьте цитаты или отклоните предложения с неподтверждёнными цитатами')
         raise LLMError('Сначала выделите проверяемые элементы')
     tests = active_tests(project)
     requirements = {r.id: r for r in project.requirements}
@@ -89,11 +91,11 @@ def analyze_coverage(project: Project, client: LLMClient,
         requirement = requirements[element.requirement_id]
         test_text = '\n'.join([*test.preconditions, *[f'{key} = {value}' for key, value in test.input_data.items()], *test.steps, test.expected_result])
         numeric = numeric_context(requirement.text, element, test)
-        required = tokens(element.description if element.source_refs else element.source_fragment) - set(numeric["boundary_tokens_not_required"])
+        required = tokens((element.description if element.source_refs else element.source_fragment) + '\n' + '\n'.join(element.conditions)) - set(numeric["boundary_tokens_not_required"])
         missing = sorted(required - tokens(test_text))
         matched = sorted(required & tokens(test_text))
         payload = {'requirement': requirement.model_dump(), 'element': element.model_dump(),
-                   'applicability': {'all_true': [e.description for e in project.elements if e.id in element.condition_ids],
+                   'applicability': {'all_true': [*element.conditions, *[e.description for e in project.elements if e.id in element.condition_ids]],
                                      'all_false': [e.description for e in project.elements if e.id in element.negated_condition_ids]},
                    'related_elements': [e.model_dump() for e in project.elements if e.requirement_id == element.requirement_id],
                    'test_case': test.model_dump(), 'deterministic_check': {'matched': matched, 'missing': missing, 'numeric_context': numeric}}
@@ -112,18 +114,28 @@ def analyze_coverage(project: Project, client: LLMClient,
             content = client.complete(messages, schema)
             try:
                 answer = SemanticDecision.model_validate_json(content)
-            except ValidationError:
-                raise LLMError(f'{element.id} / {test.id}: некорректный JSON решения покрытия') from None
+            except ValidationError as error:
+                missing_fields=[str(item['loc'][0]) for item in error.errors() if item['type']=='missing' and item['loc']]
+                details='; пропущены обязательные поля: '+', '.join(missing_fields) if missing_fields else ''
+                raise LLMError(f'{element.id} / {test.id}: некорректный JSON решения покрытия'+details) from None
+            if hasattr(client, "record_parsed"):
+                client.record_parsed(answer)
             invalid = []
             for field, source in source_fields.items():
                 restored = []
                 for quote in getattr(answer, field):
+                    # Пустая строка не является доказательством или выдуманной цитатой.
+                    # Ниже отсутствие нужных доказательств переводит COVERED в REVIEW.
+                    if not quote.strip():
+                        continue
                     original = restore_quote(source, quote)
                     if original is None:
                         invalid.append({'field': field, 'quote': quote})
                     else:
                         restored.append(original)
                 setattr(answer, field, restored)
+            if hasattr(client, "record_quotes"):
+                client.record_quotes(answer, invalid)
             if not invalid:
                 break
             diagnostic = json.dumps(invalid, ensure_ascii=False)
@@ -164,6 +176,8 @@ def analyze_coverage(project: Project, client: LLMClient,
             rationale += '\nПроверка непротиворечивости: ' + '; '.join(issues)
         links.append(CoverageLink(element_id=element.id, test_case_id=test.id, status=status,
                                   rationale=rationale, confidence=answer.confidence, needs_manual_review=True))
+        if hasattr(client, "record_decision"):
+            client.record_decision(links[-1], issues)
         if progress:
             progress(i + 1, len(pairs))
     if cancelled and cancelled():
@@ -195,13 +209,13 @@ def coverage_summary(project: Project) -> dict:
     """Считать подтверждённые элементы, а не количество положительных пар."""
     valid_tests = {t.id for t in active_tests(project)}
     confirmed = {l.element_id for l in project.coverage if l.confirmed and l.test_case_id in valid_tests}
-    def stats(elements: list[Element]) -> dict:
+    def stats(elements: list[Element], complete: bool = True) -> dict:
         count = len(elements)
         covered = sum(e.id in confirmed for e in elements)
         return {'elements': count, 'covered': covered, 'uncovered': count - covered,
-                'percent': round(100 * covered / count, 2) if count else None}
-    return {'total': stats(active_elements(project)), 'rejected_elements': len(project.elements) - len(active_elements(project)), 'requirements': {
-        r.id: stats([e for e in active_elements(project) if e.requirement_id == r.id]) for r in project.requirements}}
+                'percent': round(100 * covered / count, 2) if count and complete else None}
+    return {'total': stats(active_elements(project), not project.analysis_incomplete), 'rejected_elements': sum(e.review_status == ReviewStatus.REJECTED for e in project.elements), 'blocked_elements': sum(e.analysis_blocked and e.review_status != ReviewStatus.REJECTED for e in project.elements), 'requirements': {
+        r.id: stats([e for e in active_elements(project) if e.requirement_id == r.id], r.id not in project.analysis_incomplete) for r in project.requirements}}
 
 
 def review_link(project: Project, element_id: str, test_id: str, accepted: bool, manual_status: CoverageStatus | None = None, manual_rationale: str = "") -> Project:
@@ -219,3 +233,27 @@ def review_link(project: Project, element_id: str, test_id: str, accepted: bool,
             link['manual_rationale'] = manual_rationale.strip()
             return Project.model_validate(data)
     raise ValueError('Сначала выполните анализ этой пары')
+
+
+
+def analyze_coverage(project: Project, client: LLMClient,
+                     progress: Callable[[int,int],None] | None=None,
+                     cancelled: Callable[[],bool] | None=None) -> Project:
+    """Выполнить прежний анализ и независимо записать этапы обработки ответа."""
+    import logging
+    from reqtest.services.coverage_diagnostics import CoverageDiagnosticClient
+    diagnostic=CoverageDiagnosticClient(client,project)
+    try:
+        result=_analyze_coverage(project,diagnostic,progress,cancelled)
+    except Exception as error:
+        diagnostic.data.update(status='failed',error=str(error) if isinstance(error,LLMError) else type(error).__name__)
+        diagnostic.save()
+        if isinstance(error,LLMError):
+            suffix='\nДиагностика покрытия: '+str(diagnostic.path) if diagnostic.saved else '\nДиагностику покрытия сохранить не удалось'
+            raise LLMError(str(error)+suffix) from None
+        raise
+    diagnostic.data.update(status='completed',decisions=[link.model_dump(mode='json') for link in result.coverage])
+    diagnostic.save()
+    if diagnostic.saved:
+        logging.info('Диагностика покрытия: %s',diagnostic.path)
+    return result

@@ -1,0 +1,264 @@
+{
+  "mode": "real_model",
+  "model": "qwen2.5:7b",
+  "python": "3.12.14",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cases": [
+    {
+      "id": "IRQ",
+      "text": "On a rising edge of IRQ7, capture TIMER_COUNT into eventTimestamp before acknowledging the interrupt.",
+      "reference_elements": [
+        {
+          "type": "условие",
+          "description": "A rising edge of IRQ7 occurs",
+          "source_fragment": "On a rising edge of IRQ7, capture TIMER_COUNT into eventTimestamp before acknowledging the interrupt.",
+          "applicability": ""
+        },
+        {
+          "type": "действие",
+          "description": "Capture TIMER_COUNT into eventTimestamp before acknowledging the interrupt",
+          "source_fragment": "On a rising edge of IRQ7, capture TIMER_COUNT into eventTimestamp before acknowledging the interrupt.",
+          "applicability": "A rising edge of IRQ7 occurs"
+        }
+      ],
+      "operation": "completed",
+      "actual": {
+        "schema_version": 1,
+        "name": "Корпус",
+        "requirements": [
+          {
+            "id": "IRQ",
+            "text": "On a rising edge of IRQ7, capture TIMER_COUNT into eventTimestamp before acknowledging the interrupt.",
+            "type": null,
+            "source": null,
+            "metadata": {}
+          }
+        ],
+        "elements": [
+          {
+            "id": "IRQ::E001",
+            "requirement_id": "IRQ",
+            "type": "условие",
+            "description": "При восходящем крае IRQ7",
+            "source_fragment": "On a rising edge of IRQ7",
+            "source_refs": [
+              {
+                "source_id": "Q001",
+                "start": 0,
+                "end": 24,
+                "text": "On a rising edge of IRQ7"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": ""
+          },
+          {
+            "id": "IRQ::E002",
+            "requirement_id": "IRQ",
+            "type": "действие",
+            "description": "Захватить значение TIMER_COUNT в eventTimestamp",
+            "source_fragment": "capture TIMER_COUNT into eventTimestamp",
+            "source_refs": [
+              {
+                "source_id": "Q002",
+                "start": 26,
+                "end": 65,
+                "text": "capture TIMER_COUNT into eventTimestamp"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При восходящем крае IRQ7"
+          },
+          {
+            "id": "IRQ::E003",
+            "requirement_id": "IRQ",
+            "type": "действие",
+            "description": "Узнать прерывание",
+            "source_fragment": "acknowledging the interrupt",
+            "source_refs": [
+              {
+                "source_id": "Q003",
+                "start": 73,
+                "end": 100,
+                "text": "acknowledging the interrupt"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При восходящем крае IRQ7"
+          }
+        ],
+        "test_cases": [],
+        "coverage": [],
+        "generation_log": [],
+        "initial_coverage": null,
+        "analysis_notes": {
+          "IRQ": []
+        },
+        "analysis_incomplete": [
+          "IRQ"
+        ],
+        "extraction_log": [
+          {
+            "requirement_id": "IRQ",
+            "attempt": 1,
+            "response": "{\n    \"elements\": [\n        {\n            \"type\": \"условие\",\n            \"description\": \"При восходящем крае IRQ7\",\n            \"source_fragment\": \"On a rising edge of IRQ7\",\n            \"applicability\": \"\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Захватить значение TIMER_COUNT в eventTimestamp\",\n            \"source_fragment\": \"capture TIMER_COUNT into eventTimestamp\",\n            \"applicability\": \"При восходящем крае IRQ7\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Узнать прерывание\",\n            \"source_fragment\": \"acknowledging the interrupt\",\n            \"applicability\": \"При восходящем крае IRQ7\"\n        }\n    ],\n    \"specification_gaps\": []\n}",
+            "error": "",
+            "model": "qwen2.5:7b"
+          }
+        ]
+      },
+      "seconds": 32.0
+    },
+    {
+      "id": "STATE",
+      "text": "SLEEP: отключить генератор; RUN: разрешить обновление выходов.",
+      "reference_elements": [
+        {
+          "type": "режим",
+          "description": "SLEEP",
+          "source_fragment": "SLEEP: отключить генератор;",
+          "applicability": ""
+        },
+        {
+          "type": "режим",
+          "description": "RUN",
+          "source_fragment": "RUN: разрешить обновление выходов.",
+          "applicability": ""
+        }
+      ],
+      "operation": "completed",
+      "actual": {
+        "schema_version": 1,
+        "name": "Корпус",
+        "requirements": [
+          {
+            "id": "STATE",
+            "text": "SLEEP: отключить генератор; RUN: разрешить обновление выходов.",
+            "type": null,
+            "source": null,
+            "metadata": {}
+          }
+        ],
+        "elements": [
+          {
+            "id": "STATE::E001",
+            "requirement_id": "STATE",
+            "type": "режим",
+            "description": "SLEEP",
+            "source_fragment": "SLEEP: отключить генератор",
+            "source_refs": [
+              {
+                "source_id": "Q001",
+                "start": 0,
+                "end": 26,
+                "text": "SLEEP: отключить генератор"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "RUN: разрешить обновление выходов."
+          },
+          {
+            "id": "STATE::E002",
+            "requirement_id": "STATE",
+            "type": "действие",
+            "description": "отключить генератор",
+            "source_fragment": "отключить генератор",
+            "source_refs": [
+              {
+                "source_id": "Q002",
+                "start": 7,
+                "end": 26,
+                "text": "отключить генератор"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "RUN: разрешить обновление выходов."
+          },
+          {
+            "id": "STATE::E003",
+            "requirement_id": "STATE",
+            "type": "режим",
+            "description": "RUN",
+            "source_fragment": "RUN: разрешить обновление выходов.",
+            "source_refs": [
+              {
+                "source_id": "Q003",
+                "start": 28,
+                "end": 62,
+                "text": "RUN: разрешить обновление выходов."
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "SLEEP: отключить генератор"
+          },
+          {
+            "id": "STATE::E004",
+            "requirement_id": "STATE",
+            "type": "действие",
+            "description": "разрешить обновление выходов",
+            "source_fragment": "разрешить обновление выходов.",
+            "source_refs": [
+              {
+                "source_id": "Q004",
+                "start": 33,
+                "end": 62,
+                "text": "разрешить обновление выходов."
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "RUN: разрешить обновление выходов."
+          }
+        ],
+        "test_cases": [],
+        "coverage": [],
+        "generation_log": [],
+        "initial_coverage": null,
+        "analysis_notes": {
+          "STATE": []
+        },
+        "analysis_incomplete": [
+          "STATE"
+        ],
+        "extraction_log": [
+          {
+            "requirement_id": "STATE",
+            "attempt": 1,
+            "response": "{\n  \"elements\": [\n    {\n      \"type\": \"режим\",\n      \"description\": \"SLEEP\",\n      \"source_fragment\": \"SLEEP: отключить генератор\",\n      \"applicability\": \"RUN: разрешить обновление выходов.\"\n    },\n    {\n      \"type\": \"действие\",\n      \"description\": \"отключить генератор\",\n      \"source_fragment\": \"отключить генератор\",\n      \"applicability\": \"RUN: разрешить обновление выходов.\"\n    },\n    {\n      \"type\": \"режим\",\n      \"description\": \"RUN\",\n      \"source_fragment\": \"RUN: разрешить обновление выходов.\",\n      \"applicability\": \"SLEEP: отключить генератор\"\n    },\n    {\n      \"type\": \"действие\",\n      \"description\": \"разрешить обновление выходов\",\n      \"source_fragment\": \"разрешить обновление выходов.\",\n      \"applicability\": \"RUN: разрешить обновление выходов.\"\n    }\n  ],\n  \"specification_gaps\": []\n}",
+            "error": "",
+            "model": "qwen2.5:7b"
+          }
+        ]
+      },
+      "seconds": 41.594
+    }
+  ],
+  "interpretation": "Успешная операция не доказывает правильность. Сверьте предикаты, источники, условия, ветви, числа/единицы, пропуски и добавленные факты с эталоном и исходным текстом. Эталоны корпуса иллюстративны и не являются полной методикой верификации."
+}

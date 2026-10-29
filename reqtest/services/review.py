@@ -29,7 +29,7 @@ def edit_test(project: Project, test_id: str, changes: dict) -> Project:
 
 def edit_element(project: Project, element_id: str, changes: dict) -> Project:
     """Изменение аспекта сбрасывает анализ всего его требования (общие условия)."""
-    if not changes.keys() <= {'type', 'description', 'source_fragment', 'condition_ids', 'negated_condition_ids'}:
+    if not changes.keys() <= {'type', 'description', 'source_fragment', 'condition_ids', 'negated_condition_ids', 'conditions'}:
         raise ValueError('Нельзя изменять ID, статус или требование элемента')
     data = project.model_dump()
     for i, item in enumerate(data['elements']):
@@ -40,7 +40,11 @@ def edit_element(project: Project, element_id: str, changes: dict) -> Project:
             if candidate.model_dump() == item:
                 return project.model_copy(deep=True)
             candidate.review_status = ReviewStatus.PENDING
-            candidate.review_notes = []
+            requirement=next(r for r in project.requirements if r.id==candidate.requirement_id)
+            if 'source_fragment' in changes and candidate.source_fragment != item['source_fragment'] and candidate.source_fragment not in requirement.text:
+                raise ValueError('Цитата отсутствует в исходном требовании')
+            candidate.analysis_blocked = candidate.source_fragment not in requirement.text
+            candidate.review_notes = ['Цитата не найдена дословно; исправьте цитату или отклоните элемент'] if candidate.analysis_blocked else []
             data['elements'][i] = candidate.model_dump()
             invalidate_requirement(data, candidate.requirement_id)
             return Project.model_validate(data)
@@ -50,12 +54,14 @@ def edit_element(project: Project, element_id: str, changes: dict) -> Project:
 def invalidate_requirement(data: dict, requirement_id: str) -> None:
     """Сбросить результаты, зависящие от контекста требования."""
     data['initial_coverage'] = None
+    if requirement_id not in data.get('analysis_incomplete', []):
+        data.setdefault('analysis_incomplete', []).append(requirement_id)
     data['analysis_notes'].pop(requirement_id, None)
     element_ids = {e['id'] for e in data['elements'] if e['requirement_id'] == requirement_id}
     data['coverage'] = [link for link in data['coverage'] if link['element_id'] not in element_ids]
     for test in data['test_cases']:
         if test['requirement_id'] == requirement_id and test['source'] == TestSource.GENERATED:
-            test['review_status'] = ReviewStatus.PENDING
+            test['review_status'] = ReviewStatus.PENDING if test['review_status'] != ReviewStatus.REJECTED else ReviewStatus.REJECTED
 
 
 def review_element(project: Project, element_id: str, accepted: bool) -> Project:
@@ -63,6 +69,8 @@ def review_element(project: Project, element_id: str, accepted: bool) -> Project
     data = project.model_dump()
     for item in data['elements']:
         if item['id'] == element_id:
+            if accepted and item.get('analysis_blocked',False):
+                raise ValueError('Сначала исправьте дословную цитату элемента или отклоните его')
             status = ReviewStatus.ACCEPTED if accepted else ReviewStatus.REJECTED
             if item['review_status'] != status:
                 item['review_status'] = status
@@ -82,3 +90,19 @@ def review_test(project: Project, test_id: str, accepted: bool) -> Project:
                 data['coverage'] = [link for link in data['coverage'] if link['test_case_id'] != test_id]
             return Project.model_validate(data)
     raise ValueError('Тест не найден')
+
+
+def confirm_completeness(project: Project, requirement_id: str, rationale: str) -> Project:
+    """Записать ручную проверку набора, отдельно от принятия отдельных элементов."""
+    if requirement_id not in {r.id for r in project.requirements}:
+        raise ValueError('Требование не найдено')
+    if not rationale.strip():
+        raise ValueError('Укажите обоснование проверки полноты')
+    active = [e for e in project.elements if e.requirement_id==requirement_id and e.review_status!=ReviewStatus.REJECTED]
+    if not active or any(e.review_status!=ReviewStatus.ACCEPTED or e.analysis_blocked for e in active):
+        raise ValueError('Сначала проверьте и примите все активные элементы требования')
+    data=project.model_dump()
+    data['analysis_incomplete']=[rid for rid in data['analysis_incomplete'] if rid!=requirement_id]
+    data['analysis_notes'].setdefault(requirement_id,[]).append('Полнота проверена пользователем: '+rationale.strip())
+    data['initial_coverage']=None
+    return Project.model_validate(data)

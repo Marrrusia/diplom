@@ -1,0 +1,754 @@
+{
+  "model": "qwen2.5:7b",
+  "cases": [
+    {
+      "id": "DEMO_RANGE_001",
+      "text": "При вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно компонент должен сохранить value в поле currentLevel и вернуть STATUS_OK. Если value меньше 0 или больше 100, компонент должен вернуть STATUS_RANGE_ERROR и оставить currentLevel без изменения.",
+      "project": {
+        "schema_version": 1,
+        "name": "Реальная проверка",
+        "requirements": [
+          {
+            "id": "DEMO_RANGE_001",
+            "text": "При вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно компонент должен сохранить value в поле currentLevel и вернуть STATUS_OK. Если value меньше 0 или больше 100, компонент должен вернуть STATUS_RANGE_ERROR и оставить currentLevel без изменения.",
+            "type": null,
+            "source": "examples/demo_suite/requirements.txt",
+            "metadata": {}
+          }
+        ],
+        "elements": [
+          {
+            "id": "DEMO_RANGE_001::E001",
+            "requirement_id": "DEMO_RANGE_001",
+            "type": "условие",
+            "description": "Вызов SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно",
+            "source_fragment": "При вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно",
+            "source_refs": [
+              {
+                "source_id": "Q001",
+                "start": 0,
+                "end": 89,
+                "text": "При вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "компонент должен сохранить value в поле currentLevel и вернуть STATUS_OK"
+          },
+          {
+            "id": "DEMO_RANGE_001::E002",
+            "requirement_id": "DEMO_RANGE_001",
+            "type": "действие",
+            "description": "Сохранить value в поле currentLevel",
+            "source_fragment": "компонент должен сохранить value в поле currentLevel",
+            "source_refs": [
+              {
+                "source_id": "Q002",
+                "start": 90,
+                "end": 142,
+                "text": "компонент должен сохранить value в поле currentLevel"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "при вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно"
+          },
+          {
+            "id": "DEMO_RANGE_001::E003",
+            "requirement_id": "DEMO_RANGE_001",
+            "type": "действие",
+            "description": "Вернуть STATUS_OK",
+            "source_fragment": "и вернуть STATUS_OK",
+            "source_refs": [
+              {
+                "source_id": "Q003",
+                "start": 143,
+                "end": 162,
+                "text": "и вернуть STATUS_OK"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "при вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно"
+          },
+          {
+            "id": "DEMO_RANGE_001::E004",
+            "requirement_id": "DEMO_RANGE_001",
+            "type": "ограничение",
+            "description": "Вернуть STATUS_RANGE_ERROR и оставить currentLevel без изменения",
+            "source_fragment": "Если value меньше 0 или больше 100, компонент должен вернуть STATUS_RANGE_ERROR и оставить currentLevel без изменения",
+            "source_refs": [
+              {
+                "source_id": "Q004",
+                "start": 164,
+                "end": 281,
+                "text": "Если value меньше 0 или больше 100, компонент должен вернуть STATUS_RANGE_ERROR и оставить currentLevel без изменения"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "при вызове SetLevel с целочисленным аргументом value меньше 0 или больше 100"
+          }
+        ],
+        "test_cases": [],
+        "coverage": [],
+        "generation_log": [],
+        "initial_coverage": null,
+        "analysis_notes": {
+          "DEMO_RANGE_001": []
+        },
+        "analysis_incomplete": [
+          "DEMO_RANGE_001"
+        ],
+        "extraction_log": [
+          {
+            "requirement_id": "DEMO_RANGE_001",
+            "attempt": 1,
+            "response": "{\n    \"elements\": [\n        {\n            \"type\": \"условие\",\n            \"description\": \"Вызов SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно\",\n            \"source_fragment\": \"при вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно\",\n            \"applicability\": \"компонент должен сохранить value в поле currentLevel и вернуть STATUS_OK\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Сохранить value в поле currentLevel\",\n            \"source_fragment\": \"компонент должен сохранить value в поле currentLevel\",\n            \"applicability\": \"при вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вернуть STATUS_OK\",\n            \"source_fragment\": \"и вернуть STATUS_OK\",\n            \"applicability\": \"при вызове SetLevel с целочисленным аргументом value в диапазоне от 0 до 100 включительно\"\n        },\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Вернуть STATUS_RANGE_ERROR и оставить currentLevel без изменения\",\n            \"source_fragment\": \"если value меньше 0 или больше 100, компонент должен вернуть STATUS_RANGE_ERROR и оставить currentLevel без изменения\",\n            \"applicability\": \"при вызове SetLevel с целочисленным аргументом value меньше 0 или больше 100\"\n        }\n    ],\n    \"specification_gaps\": []\n}",
+            "error": "",
+            "model": "qwen2.5:7b"
+          }
+        ]
+      },
+      "elements": 4,
+      "blocked": 0,
+      "seconds": 92.06
+    },
+    {
+      "id": "DEMO_MODE_002",
+      "text": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC. В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение. Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено.",
+      "project": {
+        "schema_version": 1,
+        "name": "Реальная проверка",
+        "requirements": [
+          {
+            "id": "DEMO_MODE_002",
+            "text": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC. В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение. Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено.",
+            "type": null,
+            "source": "examples/demo_suite/requirements.txt",
+            "metadata": {}
+          }
+        ],
+        "elements": [
+          {
+            "id": "DEMO_MODE_002::E001",
+            "requirement_id": "DEMO_MODE_002",
+            "type": "ограничение",
+            "description": "Не вызывать StartADC",
+            "source_fragment": "не вызывать StartADC",
+            "source_refs": [
+              {
+                "source_id": "Q001",
+                "start": 83,
+                "end": 103,
+                "text": "не вызывать StartADC"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове ReadSample в режиме STANDBY"
+          },
+          {
+            "id": "DEMO_MODE_002::E002",
+            "requirement_id": "DEMO_MODE_002",
+            "type": "действие",
+            "description": "Вызвать StartADC() без аргументов",
+            "source_fragment": "вызвать StartADC() без аргументов",
+            "source_refs": [
+              {
+                "source_id": "Q002",
+                "start": 138,
+                "end": 171,
+                "text": "вызвать StartADC() без аргументов"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове ReadSample в режиме ACTIVE"
+          },
+          {
+            "id": "DEMO_MODE_002::E003",
+            "requirement_id": "DEMO_MODE_002",
+            "type": "действие",
+            "description": "Вызвать ReadADC() без аргументов и вернуть прочитанное значение",
+            "source_fragment": "вызвать ReadADC() без аргументов и вернуть прочитанное значение",
+            "source_refs": [
+              {
+                "source_id": "Q003",
+                "start": 197,
+                "end": 260,
+                "text": "вызвать ReadADC() без аргументов и вернуть прочитанное значение"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове ReadSample в режиме ACTIVE, если ADC_READY равно 1"
+          },
+          {
+            "id": "DEMO_MODE_002::E004",
+            "requirement_id": "DEMO_MODE_002",
+            "type": "ограничение",
+            "description": "Поведение не определено",
+            "source_fragment": "Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено",
+            "source_refs": [
+              {
+                "source_id": "Q004",
+                "start": 262,
+                "end": 331,
+                "text": "Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове ReadSample в режиме ACTIVE, если ADC_READY не равно 1"
+          }
+        ],
+        "test_cases": [],
+        "coverage": [],
+        "generation_log": [],
+        "initial_coverage": null,
+        "analysis_notes": {
+          "DEMO_MODE_002": [
+            "Элемент 2: source_fragment не найден в исходнике: 'возвращает STATUS_NOT_READY'"
+          ]
+        },
+        "analysis_incomplete": [
+          "DEMO_MODE_002"
+        ],
+        "extraction_log": [
+          {
+            "requirement_id": "DEMO_MODE_002",
+            "attempt": 1,
+            "response": "{\n    \"elements\": [\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Не вызывать StartADC\",\n            \"source_fragment\": \"не вызывать StartADC\",\n            \"applicability\": \"При вызове ReadSample в режиме STANDBY\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вернуть STATUS_NOT_READY\",\n            \"source_fragment\": \"возвращает STATUS_NOT_READY\",\n            \"applicability\": \"При вызове ReadSample в режиме STANDBY\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вызвать StartADC() без аргументов\",\n            \"source_fragment\": \"вызвать StartADC() без аргументов\",\n            \"applicability\": \"При вызове ReadSample в режиме ACTIVE\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вызвать ReadADC() без аргументов и вернуть прочитанное значение\",\n            \"source_fragment\": \"вызвать ReadADC() без аргументов и вернуть прочитанное значение\",\n            \"applicability\": \"При вызове ReadSample в режиме ACTIVE, если ADC_READY равно 1\"\n        },\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Поведение не определено\",\n            \"source_fragment\": \"Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено\",\n            \"applicability\": \"При вызове ReadSample в режиме ACTIVE, если ADC_READY не равно 1\"\n        }\n    ],\n    \"specification_gaps\": []\n}",
+            "error": "Элемент 2: source_fragment не найден в исходнике: 'возвращает STATUS_NOT_READY'",
+            "model": "qwen2.5:7b"
+          },
+          {
+            "requirement_id": "DEMO_MODE_002",
+            "attempt": 2,
+            "response": "{\n    \"elements\": [\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Не вызывать StartADC\",\n            \"source_fragment\": \"не вызывать StartADC\",\n            \"applicability\": \"При вызове ReadSample в режиме STANDBY\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вернуть STATUS_NOT_READY\",\n            \"source_fragment\": \"возвращает STATUS_NOT_READY\",\n            \"applicability\": \"При вызове ReadSample в режиме STANDBY\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вызвать StartADC() без аргументов\",\n            \"source_fragment\": \"вызвать StartADC() без аргументов\",\n            \"applicability\": \"При вызове ReadSample в режиме ACTIVE\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вызвать ReadADC() без аргументов и вернуть прочитанное значение\",\n            \"source_fragment\": \"вызвать ReadADC() без аргументов и вернуть прочитанное значение\",\n            \"applicability\": \"При вызове ReadSample в режиме ACTIVE, если ADC_READY равно 1\"\n        },\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Поведение не определено\",\n            \"source_fragment\": \"Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено\",\n            \"applicability\": \"При вызове ReadSample в режиме ACTIVE, если ADC_READY не равно 1\"\n        }\n    ],\n    \"specification_gaps\": []\n}",
+            "error": "Элемент 2: source_fragment не найден в исходнике: 'возвращает STATUS_NOT_READY'",
+            "model": "qwen2.5:7b"
+          },
+          {
+            "requirement_id": "DEMO_MODE_002",
+            "attempt": 3,
+            "response": "{\n    \"elements\": [\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Не вызывать StartADC\",\n            \"source_fragment\": \"не вызывать StartADC\",\n            \"applicability\": \"При вызове ReadSample в режиме STANDBY\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вернуть STATUS_NOT_READY\",\n            \"source_fragment\": \"возвращает STATUS_NOT_READY\",\n            \"applicability\": \"При вызове ReadSample в режиме STANDBY\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вызвать StartADC() без аргументов\",\n            \"source_fragment\": \"вызвать StartADC() без аргументов\",\n            \"applicability\": \"При вызове ReadSample в режиме ACTIVE\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вызвать ReadADC() без аргументов и вернуть прочитанное значение\",\n            \"source_fragment\": \"вызвать ReadADC() без аргументов и вернуть прочитанное значение\",\n            \"applicability\": \"При вызове ReadSample в режиме ACTIVE, если ADC_READY равно 1\"\n        },\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Поведение не определено\",\n            \"source_fragment\": \"Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено\",\n            \"applicability\": \"При вызове ReadSample в режиме ACTIVE, если ADC_READY не равно 1\"\n        }\n    ],\n    \"specification_gaps\": []\n}",
+            "error": "Элемент 2: source_fragment не найден в исходнике: 'возвращает STATUS_NOT_READY'",
+            "model": "qwen2.5:7b"
+          }
+        ]
+      },
+      "elements": 4,
+      "blocked": 0,
+      "seconds": 197.16
+    },
+    {
+      "id": "DEMO_LOOP_003",
+      "text": "При вызове RetrySend компонент должен вызывать SendFrame(frame) до получения результата SEND_OK, но не более 3 раз. После SEND_OK повторные вызовы SendFrame запрещены, RetrySend должен вернуть STATUS_OK. Если все 3 вызова завершились SEND_ERROR, RetrySend должен вернуть STATUS_SEND_ERROR.",
+      "project": {
+        "schema_version": 1,
+        "name": "Реальная проверка",
+        "requirements": [
+          {
+            "id": "DEMO_LOOP_003",
+            "text": "При вызове RetrySend компонент должен вызывать SendFrame(frame) до получения результата SEND_OK, но не более 3 раз. После SEND_OK повторные вызовы SendFrame запрещены, RetrySend должен вернуть STATUS_OK. Если все 3 вызова завершились SEND_ERROR, RetrySend должен вернуть STATUS_SEND_ERROR.",
+            "type": null,
+            "source": "examples/demo_suite/requirements.txt",
+            "metadata": {}
+          }
+        ],
+        "elements": [
+          {
+            "id": "DEMO_LOOP_003::E001",
+            "requirement_id": "DEMO_LOOP_003",
+            "type": "цикл",
+            "description": "Вызывать SendFrame(frame) до получения результата SEND_OK",
+            "source_fragment": "компонент должен вызывать SendFrame(frame) до получения результата SEND_OK",
+            "source_refs": [
+              {
+                "source_id": "Q001",
+                "start": 21,
+                "end": 95,
+                "text": "компонент должен вызывать SendFrame(frame) до получения результата SEND_OK"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове RetrySend"
+          },
+          {
+            "id": "DEMO_LOOP_003::E002",
+            "requirement_id": "DEMO_LOOP_003",
+            "type": "ограничение",
+            "description": "Не более 3 раз",
+            "source_fragment": "но не более 3 раз",
+            "source_refs": [
+              {
+                "source_id": "Q002",
+                "start": 97,
+                "end": 114,
+                "text": "но не более 3 раз"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове RetrySend"
+          },
+          {
+            "id": "DEMO_LOOP_003::E003",
+            "requirement_id": "DEMO_LOOP_003",
+            "type": "действие",
+            "description": "Вернуть STATUS_OK",
+            "source_fragment": "RetrySend должен вернуть STATUS_OK",
+            "source_refs": [
+              {
+                "source_id": "Q003",
+                "start": 168,
+                "end": 202,
+                "text": "RetrySend должен вернуть STATUS_OK"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове RetrySend после получения результата SEND_OK"
+          },
+          {
+            "id": "DEMO_LOOP_003::E004",
+            "requirement_id": "DEMO_LOOP_003",
+            "type": "ограничение",
+            "description": "Запрещены повторные вызовы SendFrame",
+            "source_fragment": "После SEND_OK повторные вызовы SendFrame запрещены",
+            "source_refs": [
+              {
+                "source_id": "Q004",
+                "start": 116,
+                "end": 166,
+                "text": "После SEND_OK повторные вызовы SendFrame запрещены"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове RetrySend после получения результата SEND_OK"
+          },
+          {
+            "id": "DEMO_LOOP_003::E005",
+            "requirement_id": "DEMO_LOOP_003",
+            "type": "действие",
+            "description": "Вернуть STATUS_SEND_ERROR",
+            "source_fragment": "RetrySend должен вернуть STATUS_SEND_ERROR",
+            "source_refs": [
+              {
+                "source_id": "Q005",
+                "start": 246,
+                "end": 288,
+                "text": "RetrySend должен вернуть STATUS_SEND_ERROR"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове RetrySend после 3 неудачных вызовов SendFrame"
+          }
+        ],
+        "test_cases": [],
+        "coverage": [],
+        "generation_log": [],
+        "initial_coverage": null,
+        "analysis_notes": {
+          "DEMO_LOOP_003": []
+        },
+        "analysis_incomplete": [
+          "DEMO_LOOP_003"
+        ],
+        "extraction_log": [
+          {
+            "requirement_id": "DEMO_LOOP_003",
+            "attempt": 1,
+            "response": "{\n    \"elements\": [\n        {\n            \"type\": \"цикл\",\n            \"description\": \"Вызывать SendFrame(frame) до получения результата SEND_OK\",\n            \"source_fragment\": \"компонент должен вызывать SendFrame(frame) до получения результата SEND_OK\",\n            \"applicability\": \"При вызове RetrySend\"\n        },\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Не более 3 раз\",\n            \"source_fragment\": \"но не более 3 раз\",\n            \"applicability\": \"При вызове RetrySend\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вернуть STATUS_OK\",\n            \"source_fragment\": \"RetrySend должен вернуть STATUS_OK\",\n            \"applicability\": \"При вызове RetrySend после получения результата SEND_OK\"\n        },\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Запрещены повторные вызовы SendFrame\",\n            \"source_fragment\": \"после SEND_OK повторные вызовы SendFrame запрещены\",\n            \"applicability\": \"При вызове RetrySend после получения результата SEND_OK\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вернуть STATUS_SEND_ERROR\",\n            \"source_fragment\": \"RetrySend должен вернуть STATUS_SEND_ERROR\",\n            \"applicability\": \"При вызове RetrySend после 3 неудачных вызовов SendFrame\"\n        }\n    ],\n    \"specification_gaps\": []\n}",
+            "error": "",
+            "model": "qwen2.5:7b"
+          }
+        ]
+      },
+      "elements": 5,
+      "blocked": 0,
+      "seconds": 61.19
+    },
+    {
+      "id": "DEMO_TIME_004",
+      "text": "При вызове HandleTick, если elapsed_ms больше или равно 10, компонент должен вызвать PollSensor() без аргументов ровно один раз за этот вызов HandleTick. Если elapsed_ms меньше 10, PollSensor вызываться не должен. Правила изменения elapsed_ms данным требованием не задаются.",
+      "project": {
+        "schema_version": 1,
+        "name": "Реальная проверка",
+        "requirements": [
+          {
+            "id": "DEMO_TIME_004",
+            "text": "При вызове HandleTick, если elapsed_ms больше или равно 10, компонент должен вызвать PollSensor() без аргументов ровно один раз за этот вызов HandleTick. Если elapsed_ms меньше 10, PollSensor вызываться не должен. Правила изменения elapsed_ms данным требованием не задаются.",
+            "type": null,
+            "source": "examples/demo_suite/requirements.txt",
+            "metadata": {}
+          }
+        ],
+        "elements": [
+          {
+            "id": "DEMO_TIME_004::E001",
+            "requirement_id": "DEMO_TIME_004",
+            "type": "условие",
+            "description": "elapsed_ms больше или равно 10",
+            "source_fragment": "если elapsed_ms больше или равно 10",
+            "source_refs": [
+              {
+                "source_id": "Q001",
+                "start": 23,
+                "end": 58,
+                "text": "если elapsed_ms больше или равно 10"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове HandleTick"
+          },
+          {
+            "id": "DEMO_TIME_004::E002",
+            "requirement_id": "DEMO_TIME_004",
+            "type": "действие",
+            "description": "вызвать PollSensor() без аргументов ровно один раз за этот вызов HandleTick",
+            "source_fragment": "компонент должен вызвать PollSensor() без аргументов ровно один раз за этот вызов HandleTick",
+            "source_refs": [
+              {
+                "source_id": "Q002",
+                "start": 60,
+                "end": 152,
+                "text": "компонент должен вызвать PollSensor() без аргументов ровно один раз за этот вызов HandleTick"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове HandleTick, если elapsed_ms больше или равно 10"
+          },
+          {
+            "id": "DEMO_TIME_004::E003",
+            "requirement_id": "DEMO_TIME_004",
+            "type": "ограничение",
+            "description": "PollSensor вызываться не должен",
+            "source_fragment": "PollSensor вызываться не должен",
+            "source_refs": [
+              {
+                "source_id": "Q003",
+                "start": 181,
+                "end": 212,
+                "text": "PollSensor вызываться не должен"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове HandleTick, если elapsed_ms меньше 10"
+          }
+        ],
+        "test_cases": [],
+        "coverage": [],
+        "generation_log": [],
+        "initial_coverage": null,
+        "analysis_notes": {
+          "DEMO_TIME_004": []
+        },
+        "analysis_incomplete": [
+          "DEMO_TIME_004"
+        ],
+        "extraction_log": [
+          {
+            "requirement_id": "DEMO_TIME_004",
+            "attempt": 1,
+            "response": "{\n    \"elements\": [\n        {\n            \"type\": \"условие\",\n            \"description\": \"elapsed_ms больше или равно 10\",\n            \"source_fragment\": \"если elapsed_ms больше или равно 10\",\n            \"applicability\": \"При вызове HandleTick\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"вызвать PollSensor() без аргументов ровно один раз за этот вызов HandleTick\",\n            \"source_fragment\": \"компонент должен вызвать PollSensor() без аргументов ровно один раз за этот вызов HandleTick\",\n            \"applicability\": \"При вызове HandleTick, если elapsed_ms больше или равно 10\"\n        },\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"PollSensor вызываться не должен\",\n            \"source_fragment\": \"PollSensor вызываться не должен\",\n            \"applicability\": \"При вызове HandleTick, если elapsed_ms меньше 10\"\n        }\n    ],\n    \"specification_gaps\": []\n}",
+            "error": "",
+            "model": "qwen2.5:7b"
+          }
+        ]
+      },
+      "elements": 3,
+      "blocked": 0,
+      "seconds": 43.16
+    },
+    {
+      "id": "DEMO_MASK_005",
+      "text": "При вызове UpdateFlags компонент должен вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F). В результате биты вне маски 0x0F должны сохранить значения old_flags, а биты внутри маски должны принять значения requested_flags.",
+      "project": {
+        "schema_version": 1,
+        "name": "Реальная проверка",
+        "requirements": [
+          {
+            "id": "DEMO_MASK_005",
+            "text": "При вызове UpdateFlags компонент должен вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F). В результате биты вне маски 0x0F должны сохранить значения old_flags, а биты внутри маски должны принять значения requested_flags.",
+            "type": null,
+            "source": "examples/demo_suite/requirements.txt",
+            "metadata": {}
+          }
+        ],
+        "elements": [
+          {
+            "id": "DEMO_MASK_005::E001",
+            "requirement_id": "DEMO_MASK_005",
+            "type": "действие",
+            "description": "Вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F)",
+            "source_fragment": "вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F)",
+            "source_refs": [
+              {
+                "source_id": "Q001",
+                "start": 40,
+                "end": 117,
+                "text": "вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F)"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове UpdateFlags"
+          },
+          {
+            "id": "DEMO_MASK_005::E002",
+            "requirement_id": "DEMO_MASK_005",
+            "type": "ограничение",
+            "description": "Биты вне маски 0x0F должны сохранить значения old_flags",
+            "source_fragment": "биты вне маски 0x0F должны сохранить значения old_flags",
+            "source_refs": [
+              {
+                "source_id": "Q002",
+                "start": 132,
+                "end": 187,
+                "text": "биты вне маски 0x0F должны сохранить значения old_flags"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове UpdateFlags"
+          },
+          {
+            "id": "DEMO_MASK_005::E003",
+            "requirement_id": "DEMO_MASK_005",
+            "type": "ограничение",
+            "description": "Биты внутри маски должны принять значения requested_flags",
+            "source_fragment": "биты внутри маски должны принять значения requested_flags",
+            "source_refs": [
+              {
+                "source_id": "Q003",
+                "start": 191,
+                "end": 248,
+                "text": "биты внутри маски должны принять значения requested_flags"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "При вызове UpdateFlags"
+          }
+        ],
+        "test_cases": [],
+        "coverage": [],
+        "generation_log": [],
+        "initial_coverage": null,
+        "analysis_notes": {
+          "DEMO_MASK_005": []
+        },
+        "analysis_incomplete": [
+          "DEMO_MASK_005"
+        ],
+        "extraction_log": [
+          {
+            "requirement_id": "DEMO_MASK_005",
+            "attempt": 1,
+            "response": "{\n    \"elements\": [\n        {\n            \"type\": \"действие\",\n            \"description\": \"Вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F)\",\n            \"source_fragment\": \"вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F)\",\n            \"applicability\": \"При вызове UpdateFlags\"\n        },\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Биты вне маски 0x0F должны сохранить значения old_flags\",\n            \"source_fragment\": \"биты вне маски 0x0F должны сохранить значения old_flags\",\n            \"applicability\": \"При вызове UpdateFlags\"\n        },\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"Биты внутри маски должны принять значения requested_flags\",\n            \"source_fragment\": \"биты внутри маски должны принять значения requested_flags\",\n            \"applicability\": \"При вызове UpdateFlags\"\n        }\n    ],\n    \"specification_gaps\": []\n}",
+            "error": "",
+            "model": "qwen2.5:7b"
+          }
+        ]
+      },
+      "elements": 3,
+      "blocked": 0,
+      "seconds": 47.34
+    },
+    {
+      "id": "DEMO_AMBIG_006",
+      "text": "ProcessCommand должен быстро обрабатывать команды и корректно реагировать на некорректные входные данные. Список команд, критерии корректности, допустимое время и ожидаемые ответы в этой спецификации не указаны.",
+      "project": {
+        "schema_version": 1,
+        "name": "Реальная проверка",
+        "requirements": [
+          {
+            "id": "DEMO_AMBIG_006",
+            "text": "ProcessCommand должен быстро обрабатывать команды и корректно реагировать на некорректные входные данные. Список команд, критерии корректности, допустимое время и ожидаемые ответы в этой спецификации не указаны.",
+            "type": null,
+            "source": "examples/demo_suite/requirements.txt",
+            "metadata": {}
+          }
+        ],
+        "elements": [
+          {
+            "id": "DEMO_AMBIG_006::E001",
+            "requirement_id": "DEMO_AMBIG_006",
+            "type": "ограничение",
+            "description": "быстро обрабатывать команды",
+            "source_fragment": "ProcessCommand должен быстро обрабатывать команды",
+            "source_refs": [
+              {
+                "source_id": "Q001",
+                "start": 0,
+                "end": 49,
+                "text": "ProcessCommand должен быстро обрабатывать команды"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": ""
+          },
+          {
+            "id": "DEMO_AMBIG_006::E002",
+            "requirement_id": "DEMO_AMBIG_006",
+            "type": "действие",
+            "description": "корректно реагировать на некорректные входные данные",
+            "source_fragment": "корректно реагировать на некорректные входные данные",
+            "source_refs": [
+              {
+                "source_id": "Q002",
+                "start": 52,
+                "end": 104,
+                "text": "корректно реагировать на некорректные входные данные"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "ProcessCommand"
+          },
+          {
+            "id": "DEMO_AMBIG_006::E003",
+            "requirement_id": "DEMO_AMBIG_006",
+            "type": "диапазон",
+            "description": "допустимое время",
+            "source_fragment": "быстро обрабатывать команды",
+            "source_refs": [
+              {
+                "source_id": "Q003",
+                "start": 22,
+                "end": 49,
+                "text": "быстро обрабатывать команды"
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "ProcessCommand"
+          },
+          {
+            "id": "DEMO_AMBIG_006::E004",
+            "requirement_id": "DEMO_AMBIG_006",
+            "type": "диапазон",
+            "description": "список команд, критерии корректности, ожидаемые ответы",
+            "source_fragment": "Список команд, критерии корректности, допустимое время и ожидаемые ответы в этой спецификации не указаны.",
+            "source_refs": [
+              {
+                "source_id": "Q004",
+                "start": 106,
+                "end": 211,
+                "text": "Список команд, критерии корректности, допустимое время и ожидаемые ответы в этой спецификации не указаны."
+              }
+            ],
+            "review_notes": [],
+            "condition_ids": [],
+            "negated_condition_ids": [],
+            "review_status": "ожидает проверки",
+            "analysis_blocked": false,
+            "applicability": "ProcessCommand"
+          }
+        ],
+        "test_cases": [],
+        "coverage": [],
+        "generation_log": [],
+        "initial_coverage": null,
+        "analysis_notes": {
+          "DEMO_AMBIG_006": [
+            "список команд, критерии корректности, ожидаемые ответы"
+          ]
+        },
+        "analysis_incomplete": [
+          "DEMO_AMBIG_006"
+        ],
+        "extraction_log": [
+          {
+            "requirement_id": "DEMO_AMBIG_006",
+            "attempt": 1,
+            "response": "{\n    \"elements\": [\n        {\n            \"type\": \"ограничение\",\n            \"description\": \"быстро обрабатывать команды\",\n            \"source_fragment\": \"ProcessCommand должен быстро обрабатывать команды\",\n            \"applicability\": \"\"\n        },\n        {\n            \"type\": \"действие\",\n            \"description\": \"корректно реагировать на некорректные входные данные\",\n            \"source_fragment\": \"корректно реагировать на некорректные входные данные\",\n            \"applicability\": \"ProcessCommand\"\n        },\n        {\n            \"type\": \"диапазон\",\n            \"description\": \"допустимое время\",\n            \"source_fragment\": \"быстро обрабатывать команды\",\n            \"applicability\": \"ProcessCommand\"\n        },\n        {\n            \"type\": \"диапазон\",\n            \"description\": \"список команд, критерии корректности, ожидаемые ответы\",\n            \"source_fragment\": \"Список команд, критерии корректности, допустимое время и ожидаемые ответы в этой спецификации не указаны.\",\n            \"applicability\": \"ProcessCommand\"\n        }\n    ],\n    \"specification_gaps\": [\n        \"список команд, критерии корректности, ожидаемые ответы\"\n    ]\n}",
+            "error": "",
+            "model": "qwen2.5:7b"
+          }
+        ]
+      },
+      "elements": 4,
+      "blocked": 0,
+      "seconds": 53.66
+    }
+  ],
+  "date": "2026-10-21",
+  "interpretation": "Реальная Ollama qwen2.5:7b, CPU. Завершение обработки не означает правильное или полное выделение. См. docs/validation_v3_results.md."
+}

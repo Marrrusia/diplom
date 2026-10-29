@@ -9,6 +9,7 @@ class AnalysisWorker(QThread):
     """Один атомарный запуск анализа проекта."""
     result = Signal(object)
     error = Signal(str)
+    status = Signal(str)
     progress = Signal(int, int)
 
     def __init__(self, project, settings, parent=None) -> None:
@@ -19,7 +20,7 @@ class AnalysisWorker(QThread):
     def run(self) -> None:
         """Отправить проверенный результат в GUI-поток."""
         try:
-            result = extract_project(self.project, LLMClient(self.settings), self.progress.emit,
+            result = extract_project(self.project, LLMClient(self.settings, cancelled=self.isInterruptionRequested, status=self.status.emit), self.progress.emit,
                                      self.isInterruptionRequested)
             self.result.emit(result)
         except LLMError as error:

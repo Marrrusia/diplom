@@ -31,15 +31,17 @@ class ProtocolServer:
         self.requests.append(body)
         messages = body['messages']
         prompt = messages[0]['content']
-        payload = json.loads(messages[-1]['content'])
-        if prompt.startswith('Ты аналитик'):
-            result = {'elements': [{'type': e.type.value, 'description': e.description,
-                'source_ids': ['F001']} for e in demo_project().elements],
-                'specification_gaps': ['Поведение при Instance != CRC не определено']}
+        if prompt.startswith('Выдели из требования'):
+            result = {'obligations': [dict(statement=e.description,conditions=[],source_fragment=demo_project().requirements[0].text) for e in demo_project().elements], 'specification_gaps':[]}
+            payload={}
+        else:
+            payload=json.loads(messages[-1]['content'])
+        if prompt.startswith('Выдели из требования'):
+            pass
         elif prompt.startswith('Оцени покрытие'):
             test, element = payload['test_case'], payload['element']
             # Импортированный частичный тест подтверждает только два условия.
-            covered = test['id'] != 'EXISTING' or element['type'] == 'условие'
+            covered = test['id'] != 'EXISTING' or element['id'].endswith(('E001','E002'))
             result = {'status': 'покрыт' if covered else 'не покрыт', 'confidence': 0.95,
                 'rationale': 'Сопоставлены предусловие, вызов и проверяемый результат',
                 'precondition_evidence': test['preconditions'], 'step_evidence': test['steps'],
@@ -89,6 +91,10 @@ def test_import_to_report_roundtrip(tmp_path: Path, provider: str, mode: Generat
     project = extract_project(project, client).project
     assert len(project.elements) == 4
     assert project.analysis_notes[requirement.id]
+    from reqtest.services.review import review_element, confirm_completeness
+    for element in list(project.elements):
+        project = review_element(project, element.id, True)
+    project = confirm_completeness(project, requirement.id, 'Все аспекты учебного требования проверены вручную')
     if mode == GenerationMode.MISSING:
         path = tmp_path / 'Тесты.csv'
         headers = ['id', 'requirement_id', 'title', 'preconditions', 'steps', 'expected_result']

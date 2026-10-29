@@ -1,0 +1,212 @@
+[
+  {
+    "id": "IRQ",
+    "text": "On a rising edge of IRQ7, capture TIMER_COUNT into eventTimestamp before acknowledging the interrupt.",
+    "elements": [
+      {
+        "type": "условие",
+        "description": "A rising edge of IRQ7 occurs",
+        "source_fragment": "On a rising edge of IRQ7, capture TIMER_COUNT into eventTimestamp before acknowledging the interrupt.",
+        "applicability": ""
+      },
+      {
+        "type": "действие",
+        "description": "Capture TIMER_COUNT into eventTimestamp before acknowledging the interrupt",
+        "source_fragment": "On a rising edge of IRQ7, capture TIMER_COUNT into eventTimestamp before acknowledging the interrupt.",
+        "applicability": "A rising edge of IRQ7 occurs"
+      }
+    ]
+  },
+  {
+    "id": "BITS",
+    "text": "Запись единицы в бит FLAG_DONE очищает его; остальные биты регистра остаются неизменными.",
+    "elements": [
+      {
+        "type": "условие",
+        "description": "Запись единицы в FLAG_DONE",
+        "source_fragment": "Запись единицы в бит FLAG_DONE очищает его; остальные биты регистра остаются неизменными.",
+        "applicability": ""
+      },
+      {
+        "type": "действие",
+        "description": "Очистить FLAG_DONE",
+        "source_fragment": "Запись единицы в бит FLAG_DONE очищает его; остальные биты регистра остаются неизменными.",
+        "applicability": "Запись единицы в FLAG_DONE"
+      },
+      {
+        "type": "ограничение",
+        "description": "Остальные биты регистра остаются неизменными",
+        "source_fragment": "Запись единицы в бит FLAG_DONE очищает его; остальные биты регистра остаются неизменными.",
+        "applicability": ""
+      }
+    ]
+  },
+  {
+    "id": "DEADLINE",
+    "text": "Интервал между установкой REQUEST и выдачей ACK не превышает 25 мкс.",
+    "elements": [
+      {
+        "type": "ограничение",
+        "description": "Интервал REQUEST — ACK не превышает 25 мкс",
+        "source_fragment": "Интервал между установкой REQUEST и выдачей ACK не превышает 25 мкс.",
+        "applicability": ""
+      }
+    ]
+  },
+  {
+    "id": "SATURATION",
+    "text": "На очередном тике счётчик увеличивается до предела 0xFF; после достижения предела значение сохраняется.",
+    "elements": [
+      {
+        "type": "диапазон",
+        "description": "Верхний предел счётчика 0xFF",
+        "source_fragment": "На очередном тике счётчик увеличивается до предела 0xFF; после достижения предела значение сохраняется.",
+        "applicability": ""
+      },
+      {
+        "type": "действие",
+        "description": "После достижения предела значение сохраняется",
+        "source_fragment": "На очередном тике счётчик увеличивается до предела 0xFF; после достижения предела значение сохраняется.",
+        "applicability": ""
+      }
+    ]
+  },
+  {
+    "id": "RETRY",
+    "text": "Transmit repeats until status == READY, stopping after 4 failed attempts.",
+    "elements": [
+      {
+        "type": "цикл",
+        "description": "Transmit repeats until status == READY, stopping after 4 failed attempts",
+        "source_fragment": "Transmit repeats until status == READY, stopping after 4 failed attempts.",
+        "applicability": ""
+      }
+    ]
+  },
+  {
+    "id": "STATE",
+    "text": "SLEEP: отключить генератор; RUN: разрешить обновление выходов.",
+    "elements": [
+      {
+        "type": "режим",
+        "description": "SLEEP",
+        "source_fragment": "SLEEP: отключить генератор;",
+        "applicability": ""
+      },
+      {
+        "type": "режим",
+        "description": "RUN",
+        "source_fragment": "RUN: разрешить обновление выходов.",
+        "applicability": ""
+      }
+    ]
+  },
+  {
+    "id": "NESTED",
+    "text": "Если питание стабильно, то при снятой блокировке выдать START; иначе сохранить прежнее состояние.",
+    "elements": [
+      {
+        "type": "условие",
+        "description": "Питание стабильно",
+        "source_fragment": "Если питание стабильно, то при снятой блокировке выдать START; иначе сохранить прежнее состояние.",
+        "applicability": ""
+      },
+      {
+        "type": "условие",
+        "description": "Блокировка снята",
+        "source_fragment": "Если питание стабильно, то при снятой блокировке выдать START; иначе сохранить прежнее состояние.",
+        "applicability": "Питание стабильно"
+      },
+      {
+        "type": "действие",
+        "description": "Выдать START",
+        "source_fragment": "Если питание стабильно, то при снятой блокировке выдать START; иначе сохранить прежнее состояние.",
+        "applicability": "Питание стабильно; Блокировка снята"
+      }
+    ]
+  },
+  {
+    "id": "FIXED_POINT",
+    "text": "Compute output = (input * 3) >> 2 using signed arithmetic; truncate toward zero.",
+    "elements": [
+      {
+        "type": "действие",
+        "description": "Compute output = (input * 3) >> 2 using signed arithmetic",
+        "source_fragment": "Compute output = (input * 3) >> 2 using signed arithmetic; truncate toward zero.",
+        "applicability": ""
+      },
+      {
+        "type": "ограничение",
+        "description": "Truncate toward zero",
+        "source_fragment": "Compute output = (input * 3) >> 2 using signed arithmetic; truncate toward zero.",
+        "applicability": ""
+      }
+    ]
+  },
+  {
+    "id": "BOUNDS",
+    "text": "Допустимые отсчёты: −40 ≤ sample ≤ 125. Граничные значения включены.",
+    "elements": [
+      {
+        "type": "диапазон",
+        "description": "−40 ≤ sample ≤ 125",
+        "source_fragment": "Допустимые отсчёты: −40 ≤ sample ≤ 125.",
+        "applicability": ""
+      },
+      {
+        "type": "ограничение",
+        "description": "Граничные значения включены",
+        "source_fragment": "Граничные значения включены.",
+        "applicability": ""
+      }
+    ]
+  },
+  {
+    "id": "DMA",
+    "text": "Запуск DMA запрещён, пока дескриптор принадлежит устройству.",
+    "elements": [
+      {
+        "type": "условие",
+        "description": "Дескриптор принадлежит устройству",
+        "source_fragment": "Запуск DMA запрещён, пока дескриптор принадлежит устройству.",
+        "applicability": ""
+      },
+      {
+        "type": "ограничение",
+        "description": "Запуск DMA запрещён",
+        "source_fragment": "Запуск DMA запрещён, пока дескриптор принадлежит устройству.",
+        "applicability": "Дескриптор принадлежит устройству"
+      }
+    ]
+  },
+  {
+    "id": "RESET",
+    "text": "После аппаратного сброса BOOT_FLAG = 0. Программный сброс не изменяет BOOT_FLAG.",
+    "elements": [
+      {
+        "type": "действие",
+        "description": "После аппаратного сброса BOOT_FLAG = 0",
+        "source_fragment": "После аппаратного сброса BOOT_FLAG = 0.",
+        "applicability": ""
+      },
+      {
+        "type": "ограничение",
+        "description": "Программный сброс не изменяет BOOT_FLAG",
+        "source_fragment": "Программный сброс не изменяет BOOT_FLAG.",
+        "applicability": ""
+      }
+    ]
+  },
+  {
+    "id": "UNITS",
+    "text": "Timeout shall be between 1e-3 s and 2e-3 s, inclusive.",
+    "elements": [
+      {
+        "type": "диапазон",
+        "description": "Timeout between 1e-3 s and 2e-3 s, inclusive",
+        "source_fragment": "Timeout shall be between 1e-3 s and 2e-3 s, inclusive.",
+        "applicability": ""
+      }
+    ]
+  }
+]

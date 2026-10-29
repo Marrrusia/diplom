@@ -15,6 +15,7 @@ class ElementType(str, Enum):
     RANGE = "диапазон"
     LOOP = "цикл"
     MODE = "режим"
+    OBLIGATION = "обязательство"
 
 
 class ReviewStatus(str, Enum):
@@ -58,6 +59,8 @@ class Element(StrictModel):
     type: ElementType
     description: str = Field(min_length=1)
     source_fragment: str = Field(min_length=1)
+    conditions: list[str] = Field(default_factory=list)
+    analysis_blocked: bool = False
     source_refs: list[SourceReference] = Field(default_factory=list)
     review_notes: list[str] = Field(default_factory=list)
     condition_ids: list[str] = Field(default_factory=list)
@@ -154,6 +157,7 @@ class Project(StrictModel):
     generation_log: list[GenerationEntry] = Field(default_factory=list)
     initial_coverage: CoverageBaseline | None = None
     analysis_notes: dict[str, list[str]] = Field(default_factory=dict)
+    analysis_incomplete: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_references(self) -> "Project":
@@ -162,13 +166,15 @@ class Project(StrictModel):
             if len(ids) != len(set(ids)):
                 raise ValueError("Идентификаторы внутри набора должны быть уникальными")
         requirements = {r.id: r for r in self.requirements}
+        if len(self.analysis_incomplete) != len(set(self.analysis_incomplete)) or any(rid not in requirements for rid in self.analysis_incomplete):
+            raise ValueError('Некорректные ссылки проверки полноты')
         elements = {e.id: e for e in self.elements}
         tests = {t.id: t for t in self.test_cases}
         for item in [*self.elements, *self.test_cases, *self.generation_log]:
             if item.requirement_id not in requirements:
                 raise ValueError("Ссылка на неизвестное требование")
         for element in self.elements:
-            if element.source_fragment not in requirements[element.requirement_id].text:
+            if element.source_fragment not in requirements[element.requirement_id].text and not element.analysis_blocked:
                 raise ValueError("Цитата отсутствует в исходном требовании")
             if element.source_refs:
                 refs = element.source_refs

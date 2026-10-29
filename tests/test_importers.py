@@ -83,8 +83,7 @@ def test_merge_duplicate_preserves_project():
     from reqtest.models.domain import Requirement
     r = Requirement(id='R1', text='Текст')
     project = Project(name='Проект', requirements=[r])
-    with pytest.raises(ValueError):
-        merge_import(project, [r], 'requirements')
+    assert merge_import(project, [r], 'requirements') == project
     assert len(project.requirements) == 1
 
 

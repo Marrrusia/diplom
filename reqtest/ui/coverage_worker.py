@@ -9,7 +9,7 @@ class CoverageWorker(AnalysisWorker):
     """Использует сигналы и снимок проекта рабочего потока анализа."""
     def run(self) -> None:
         try:
-            self.result.emit(analyze_coverage(self.project, LLMClient(self.settings),
+            self.result.emit(analyze_coverage(self.project, LLMClient(self.settings, cancelled=self.isInterruptionRequested, status=self.status.emit),
                 self.progress.emit, self.isInterruptionRequested))
         except LLMError as error:
             logging.warning('Ошибка покрытия: %s', error)

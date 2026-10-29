@@ -115,8 +115,10 @@ class ElementEditorDialog(EditorDialog):
         self.category.setCurrentText(element.type.value)
         self.description = QPlainTextEdit(element.description)
         self.fragment = QPlainTextEdit(element.source_fragment)
+        self.conditions = QPlainTextEdit('\n'.join(element.conditions))
         self.form.addRow('Категория', self.category)
         self.form.addRow('Описание', self.description)
+        self.form.addRow('Условия выполнения (по одному на строку)', self.conditions)
         self.form.addRow('Точная цитата', self.fragment)
         self.condition_lists = []
         for label, selected in [('При истинности условий', element.condition_ids),
@@ -131,12 +133,13 @@ class ElementEditorDialog(EditorDialog):
                     item.setCheckState(Qt.CheckState.Checked if condition.id in selected else Qt.CheckState.Unchecked)
                     choices.addItem(item)
             self.condition_lists.append(choices)
-            self.form.addRow(label, choices)
+            if choices.count():
+                self.form.addRow(label, choices)
         self.finish_form()
 
     def apply(self) -> Project:
         return edit_element(self.project, self.element_id, dict(type=self.category.currentText(),
-            description=self.description.toPlainText(), source_fragment=self.fragment.toPlainText(),
+            description=self.description.toPlainText(), source_fragment=self.fragment.toPlainText(), conditions=[line.strip() for line in self.conditions.toPlainText().splitlines() if line.strip()],
             **{field: [choices.item(i).data(Qt.ItemDataRole.UserRole) for i in range(choices.count())
                        if choices.item(i).checkState() == Qt.CheckState.Checked]
                for field, choices in zip(('condition_ids', 'negated_condition_ids'), self.condition_lists)}))

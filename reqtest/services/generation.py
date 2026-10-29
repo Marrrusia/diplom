@@ -51,7 +51,8 @@ class GenerationResult(StrictModel):
 
 SYSTEM = '''Сгенерируй тесты только для target_elements по исходному требованию.
 Учитывай все условия и ограничения requirement и all_elements, существующие тесты.
-condition_ids задают истинные условия применимости, negated_condition_ids — ложные.
+conditions — текстовые условия результата. Сохраняй их в предусловиях теста.
+В старых проектах condition_ids задают истинные условия, negated_condition_ids — ложные.
 Не объединяй несовместимые ветви в одном сценарии. Учитывай
 предыдущие предложения и covered_element_ids. Не дублируй имеющиеся тесты.
 Для первоначального набора проверь все целевые элементы; для дополнения — только
@@ -104,9 +105,9 @@ def generate_tests(project: Project, client: LLMClient, mode: GenerationMode,
         raise LLMError('Генерация отменена; проект не изменён')
     if not targets:
         return GenerationResult(project=project.model_copy(deep=True), generated_count=0,
-                                message='Все элементы имеют подтверждённое покрытие. Генерация не требуется')
+                                message=('Полнота выделения не подтверждена; отсутствие целей не доказывает полное покрытие' if project.analysis_incomplete else 'Все элементы имеют подтверждённое покрытие. Генерация не требуется'))
     data = project.model_dump()
-    if project.initial_coverage is None:
+    if project.initial_coverage is None and not project.analysis_incomplete:
         summary = coverage_summary(project)
         data['initial_coverage'] = {
             'captured_at': datetime.now(timezone.utc).isoformat(),
@@ -126,14 +127,15 @@ def generate_tests(project: Project, client: LLMClient, mode: GenerationMode,
         schema = GenerationResponse.model_json_schema()
         payload = {'requirement': requirement.model_dump(), 'target_elements': [e.model_dump() for e in requested],
                    'all_elements': [e.model_dump() for e in all_elements],
-                   'covered_element_ids': [e.id for e in all_elements if e.id not in target_ids],
+                   'covered_element_ids': [e.id for e in active_elements(project) if e.requirement_id==requirement.id and any(link.element_id==e.id and link.confirmed and link.test_case_id in {test.id for test in active_tests(project)} for link in project.coverage)],
                    'existing_tests': [t.model_dump() for t in known], 'mode': mode.value}
         answer = _parse(client.complete([
             {'role': 'system', 'content': SYSTEM + '\nСхема: ' + json.dumps(schema, ensure_ascii=False)},
             {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}], schema), GenerationResponse)
         accepted_ids = []
         notes = list(answer.specification_gaps)
-        notes.append("Исходное подтверждённое покрытие: " + str(coverage_summary(project)["total"]["percent"]) + "%")
+        percent=coverage_summary(project)["total"]["percent"]
+        notes.append("Исходное подтверждённое покрытие: " + (str(percent)+"%" if percent is not None else "не определено"))
         linked = set()
         for candidate in answer.tests:
             if cancelled and cancelled():

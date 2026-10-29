@@ -16,9 +16,9 @@ class GenerationWorker(AnalysisWorker):
         try:
             if not generation_targets(self.project, self.mode):
                 self.result.emit(GenerationResult(project=self.project, generated_count=0,
-                    message='Все элементы имеют подтверждённое покрытие. Генерация не требуется'))
+                    message=('Полнота выделения не подтверждена; проверьте исходные требования' if self.project.analysis_incomplete else 'Все элементы имеют подтверждённое покрытие. Генерация не требуется')))
                 return
-            self.result.emit(generate_tests(self.project, LLMClient(self.settings), self.mode,
+            self.result.emit(generate_tests(self.project, LLMClient(self.settings, cancelled=self.isInterruptionRequested, status=self.status.emit), self.mode,
                 self.progress.emit, self.isInterruptionRequested))
         except LLMError as error:
             logging.warning('Ошибка генерации: %s', error)

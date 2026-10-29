@@ -12,7 +12,7 @@ from reqtest.ui.coverage_worker import CoverageWorker
 from reqtest.ui.generation_worker import GenerationWorker
 from reqtest.services.generation import GenerationMode, review_generated_test
 from reqtest.models.domain import TestSource, CoverageStatus
-from reqtest.services.review import review_test, review_element
+from reqtest.services.review import review_test, review_element, confirm_completeness
 from reqtest.ui.edit_dialogs import TestEditorDialog, ElementEditorDialog
 from reqtest.ui.presentation import configure_table, fit_table, filter_table, readable_record, enhance_page
 from reqtest.services.coverage import active_elements, active_tests, matrix_status, coverage_summary, review_link
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
                 self.provider = QComboBox()
                 self.provider.addItems(["ollama", "openai"])
                 self.server = QLineEdit("http://localhost:11434")
-                self.model_name = QLineEdit("qwen2.5:7b")
+                self.model_name = QLineEdit("qwen35-9b-q5:latest")
                 self.api_key = QLineEdit()
                 self.api_key.setEchoMode(QLineEdit.EchoMode.Password)
                 for name, widget in (("Тип сервера", self.provider), ("Адрес сервера", self.server),
@@ -180,8 +180,8 @@ class MainWindow(QMainWindow):
                 layout.addWidget(self.cancel_button)
                 self.analysis_progress = QProgressBar()
                 layout.addWidget(self.analysis_progress)
-                self.elements_table = QTableWidget(0, 6)
-                self.elements_table.setHorizontalHeaderLabels(["ID", "Требование", "Категория", "Описание", "Цитата", "Проверка"])
+                self.elements_table = QTableWidget(0, 7)
+                self.elements_table.setHorizontalHeaderLabels(["ID", "Требование", "Тип", "Что требуется", "При каких условиях", "Цитата", "Проверка"])
                 self.elements_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
                 self.add_search(layout, self.elements_table, "elements")
                 layout.addWidget(self.elements_table)
@@ -192,7 +192,8 @@ class MainWindow(QMainWindow):
                 self.elements_table.cellDoubleClicked.connect(lambda row, col: self.edit_selected_element())
                 for label, action in (("Редактировать выбранный элемент", self.edit_selected_element),
                     ("Принять выбранный элемент", lambda: self.review_selected_element(True)),
-                    ("Отклонить выбранный элемент", lambda: self.review_selected_element(False))):
+                    ("Отклонить выбранный элемент", lambda: self.review_selected_element(False)),
+                    ("Подтвердить полноту требования…", self.confirm_requirement_completeness)):
                     edit_button = QPushButton(label)
                     edit_button.clicked.connect(action)
                     layout.addWidget(edit_button)
@@ -364,7 +365,7 @@ class MainWindow(QMainWindow):
         """Принять только завершённый проверенный снимок."""
         self.project = result.project
         self.refresh_tables()
-        self.analysis_notes.setPlainText("Результат LLM требует ручной проверки. Цитаты проверены автоматически; "
+        self.analysis_notes.setPlainText("Результат LLM требует ручной проверки. Совпадение цитат проверено автоматически; строки с несовпадением требуют исправления. "
             "соответствие описаний смыслу требования не гарантируется.\n\n" +
             "\n".join(f"{identifier}: {note}" for identifier, notes in result.notes.items() for note in notes))
 
@@ -377,7 +378,7 @@ class MainWindow(QMainWindow):
             self.worker.requestInterruption()
             self.cancel_button.setEnabled(False)
             self.global_cancel.setEnabled(False)
-            self.statusBar().showMessage("Отмена после завершения текущего запроса (до 180 секунд)")
+            self.statusBar().showMessage("Отмена после завершения текущего запроса (в пределах тайм-аута LLM)")
 
     def analysis_finished(self) -> None:
         """Освободить поток и разрешить следующую операцию."""
@@ -415,7 +416,7 @@ class MainWindow(QMainWindow):
         self.elements_table.setRowCount(len(self.project.elements))
         for i, element in enumerate(self.project.elements):
             values = (element.id, element.requirement_id, element.type.value,
-                      element.description, element.source_fragment, element.review_status.value)
+                      element.description, '\n'.join(element.conditions), element.source_fragment, element.review_status.value + (' — исправьте цитату' if element.analysis_blocked else ''))
             for j, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setToolTip(value)
@@ -478,6 +479,10 @@ class MainWindow(QMainWindow):
             percent = "не определено" if row['percent'] is None else f"{row['percent']}%"
             lines.append(f"{name}: подтверждено {row['covered']}/{row['elements']}; покрытие {percent}; неподтверждённых/непокрытых {row['uncovered']}")
         lines.append(f"Отклонённых элементов (исключены из расчёта): {stats['rejected_elements']}")
+        if self.project.analysis_incomplete:
+            lines.append('Полнота выделения не подтверждена: '+', '.join(self.project.analysis_incomplete))
+        if stats['blocked_elements']:
+            lines.append(f"Элементов с неподтверждённой цитатой (временно исключены): {stats['blocked_elements']}")
         self.summary_label.setText("\n".join(lines))
         self.show_link(self.matrix.currentRow(), self.matrix.currentColumn())
         if hasattr(self, "file_status"):
@@ -672,12 +677,14 @@ class MainWindow(QMainWindow):
         requirement = next(r for r in self.project.requirements if r.id == element.requirement_id)
         self.element_details.setPlainText(readable_record(element, {
             'id': 'Идентификатор', 'requirement_id': 'Требование', 'type': 'Категория',
-            'description': 'Описание', 'source_fragment': 'Цитата', 'review_status': 'Проверка', 'review_notes': 'Замечания к структуре элемента', 'condition_ids': 'Применимо при условиях', 'negated_condition_ids': 'Применимо при ложности условий'}) +
+            'description': 'Описание', 'source_fragment': 'Цитата', 'review_status': 'Проверка', 'review_notes': 'Замечания к структуре элемента', 'conditions': 'Условия выполнения', 'analysis_blocked': 'Исключён из анализа до исправления цитаты', 'condition_ids': 'Применимо при условиях', 'negated_condition_ids': 'Применимо при ложности условий'}) +
             '\n\nИсходное требование:\n' + requirement.text +
             '\n\nСсылки на источники:\n' + ('\n'.join(f'{ref.source_id} [{ref.start}:{ref.end}]: {ref.text}' for ref in element.source_refs) or 'Старая версия или источник отредактирован вручную'))
 
     def begin_operation(self) -> None:
         """Единое состояние занятости и общая отмена на всех вкладках."""
+        if self.worker and hasattr(self.worker, 'status'):
+            self.worker.status.connect(self.statusBar().showMessage)
         self.operation_error = False
         if isinstance(self.worker, FileWorker):
             self.operation_name = {'open': 'Открытие проекта', 'save': 'Сохранение проекта', 'export': 'Экспорт XLSX'}[self.worker.operation]
@@ -823,3 +830,22 @@ class MainWindow(QMainWindow):
         for widget in [*self.record_details.values(), self.element_details, self.analysis_notes,
                        self.coverage_details, self.generation_details, self.generation_log]:
             widget.clear()
+
+
+    def confirm_requirement_completeness(self) -> None:
+        """Пользователь проверяет исходный текст и весь набор его элементов."""
+        identifiers=[r.id for r in self.project.requirements if r.id in self.project.analysis_incomplete]
+        if not identifiers:
+            QMessageBox.information(self,'Полнота','Нет требований с неподтверждённой полнотой')
+            return
+        identifier,ok=QInputDialog.getItem(self,'Полнота','Выберите проверенное требование',identifiers,0,False)
+        if not ok:
+            return
+        reason,ok=QInputDialog.getMultiLineText(self,'Полнота','Обоснуйте, что все обязательства исходного текста представлены в принятых элементах')
+        if not ok:
+            return
+        try:
+            self.project=confirm_completeness(self.project,identifier,reason)
+            self.refresh_tables()
+        except ValueError as error:
+            QMessageBox.warning(self,'Проверка полноты',str(error))

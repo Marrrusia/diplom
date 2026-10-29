@@ -1,0 +1,130 @@
+[
+  {
+    "name": "MODE",
+    "text": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC. В режиме ACTIVE компонент должен вызвать StartADC() без аргументов; если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение. Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено.",
+    "blocked": 0,
+    "answer": {
+      "obligations": [
+        {
+          "statement": "Компонент должен вернуть STATUS_NOT_READY.",
+          "conditions": [
+            "При вызове ReadSample",
+            "в режиме STANDBY"
+          ],
+          "source_fragment": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC."
+        },
+        {
+          "statement": "Компонент не должен вызывать StartADC.",
+          "conditions": [
+            "При вызове ReadSample",
+            "в режиме STANDBY"
+          ],
+          "source_fragment": "При вызове ReadSample в режиме STANDBY компонент должен вернуть STATUS_NOT_READY и не вызывать StartADC."
+        },
+        {
+          "statement": "Компонент должен вызвать StartADC() без аргументов.",
+          "conditions": [
+            "При вызове ReadSample",
+            "в режиме ACTIVE"
+          ],
+          "source_fragment": "В режиме ACTIVE компонент должен вызвать StartADC() без аргументов"
+        },
+        {
+          "statement": "Компонент должен вызвать ReadADC() без аргументов.",
+          "conditions": [
+            "При вызове ReadSample",
+            "в режиме ACTIVE",
+            "если ADC_READY равно 1"
+          ],
+          "source_fragment": "если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение."
+        },
+        {
+          "statement": "Компонент должен вернуть прочитанное значение.",
+          "conditions": [
+            "При вызове ReadSample",
+            "в режиме ACTIVE",
+            "если ADC_READY равно 1"
+          ],
+          "source_fragment": "если ADC_READY равно 1, вызвать ReadADC() без аргументов и вернуть прочитанное значение."
+        }
+      ],
+      "specification_gaps": [
+        "Поведение в режиме ACTIVE при ADC_READY, отличном от 1, не определено."
+      ]
+    }
+  },
+  {
+    "name": "MASK",
+    "text": "При вызове UpdateFlags компонент должен вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F). В результате биты вне маски 0x0F должны сохранить значения old_flags, а биты внутри маски должны принять значения requested_flags.",
+    "blocked": 0,
+    "answer": {
+      "obligations": [
+        {
+          "statement": "Вычислять new_flags по формуле: (old_flags & ~0x0F) | (requested_flags & 0x0F)",
+          "conditions": [],
+          "source_fragment": "При вызове UpdateFlags компонент должен вычислить new_flags по формуле (old_flags & ~0x0F) | (requested_flags & 0x0F)."
+        },
+        {
+          "statement": "Сохранять значения битов вне маски 0x0F из old_flags в new_flags",
+          "conditions": [],
+          "source_fragment": "В результате биты вне маски 0x0F должны сохранить значения old_flags"
+        },
+        {
+          "statement": "Принимать значения битов внутри маски 0x0F из requested_flags в new_flags",
+          "conditions": [],
+          "source_fragment": "а биты внутри маски должны принять значения requested_flags"
+        }
+      ],
+      "specification_gaps": []
+    }
+  },
+  {
+    "name": "LOOP",
+    "text": "При вызове RetrySend компонент должен вызывать SendFrame(frame) до получения результата SEND_OK, но не более 3 раз. После SEND_OK повторные вызовы SendFrame запрещены, RetrySend должен вернуть STATUS_OK. Если все 3 вызова завершились SEND_ERROR, RetrySend должен вернуть STATUS_SEND_ERROR.",
+    "blocked": 1,
+    "answer": {
+      "obligations": [
+        {
+          "statement": "Вызывать функцию SendFrame(frame)",
+          "conditions": [
+            "При вызове RetrySend"
+          ],
+          "source_fragment": "При вызове RetrySend компонент должен вызывать SendFrame(frame) до получения результата SEND_OK"
+        },
+        {
+          "statement": "Выполнять повторные вызовы SendFrame(frame) не более 3 раз",
+          "conditions": [
+            "При вызове RetrySend",
+            "до получения результата SEND_OK"
+          ],
+          "source_fragment": "При вызове RetrySend компонент должен вызывать SendFrame(frame) до получения результата SEND_OK, но не более 3 раз."
+        },
+        {
+          "statement": "Запретить повторные вызовы функции SendFrame(frame)",
+          "conditions": [
+            "После получения результата SEND_OK",
+            "При вызове RetrySend"
+          ],
+          "source_fragment": "После SEND_OK повторные вызовы SendFrame запрещены, RetrySend должен вернуть STATUS_OK."
+        },
+        {
+          "statement": "Возвращать значение STATUS_OK",
+          "conditions": [
+            "После получения результата SEND_OK",
+            "При вызове RetrySend"
+          ],
+          "source_fragment": "После SEND_OK ... RetrySend должен вернуть STATUS_OK."
+        },
+        {
+          "statement": "Возвращать значение STATUS_SEND_ERROR",
+          "conditions": [
+            "Если все 3 вызова завершились SEND_ERROR",
+            "При вызове RetrySend"
+          ],
+          "source_fragment": "Если все 3 вызова завершились SEND_ERROR, RetrySend должен вернуть STATUS_SEND_ERROR."
+        }
+      ],
+      "specification_gaps": []
+    }
+  }
+]

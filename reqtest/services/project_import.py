@@ -8,8 +8,24 @@ def merge_import(project: Project, items: list[Requirement] | list[TestCase], ki
     if kind not in ("requirements", "test_cases"):
         raise ValueError("Неизвестный набор данных")
     data = project.model_dump()
+    identifiers = [item.id for item in items]
+    if len(identifiers) != len(set(identifiers)):
+        raise ValueError('Повторные идентификаторы внутри импортируемого файла')
+    existing = {item['id']: item for item in data[kind]}
+    new_items = []
+    for item in items:
+        value = item.model_dump()
+        if item.id in existing:
+            if value != existing[item.id]:
+                raise ValueError('Конфликт импортируемого идентификатора: '+item.id)
+        else:
+            new_items.append(value)
+    if not new_items:
+        return project.model_copy(deep=True)
     data['initial_coverage'] = None
-    data[kind].extend(item.model_dump() for item in items)
+    data[kind].extend(new_items)
+    if kind == 'requirements':
+        data['analysis_incomplete'] = list(dict.fromkeys(data.get('analysis_incomplete', []) + [item['id'] for item in new_items]))
     return Project.model_validate(data)
 
 

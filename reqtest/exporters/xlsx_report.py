@@ -43,7 +43,7 @@ def export_report(project: Project, path: Path) -> None:
               ('Requirements', 'Elements', 'TestCases', 'CoverageMatrix', 'Summary', 'GenerationLog')}
     for name, items, fields in (
         ('Requirements', project.requirements, ['id', 'text', 'type', 'source', 'metadata']),
-        ('Elements', project.elements, ['id', 'requirement_id', 'type', 'description', 'source_fragment', 'review_status', 'source_refs', 'review_notes', 'condition_ids', 'negated_condition_ids']),
+        ('Elements', project.elements, ['id', 'requirement_id', 'type', 'description', 'source_fragment', 'review_status', 'conditions', 'analysis_blocked', 'source_refs', 'review_notes', 'condition_ids', 'negated_condition_ids']),
         ('TestCases', active_tests(project), ['id', 'requirement_id', 'title', 'preconditions', 'input_data', 'steps',
                                              'expected_result', 'source', 'review_status', 'element_ids']),
         ('GenerationLog', project.generation_log, ['id', 'requirement_id', 'model', 'mode', 'test_case_ids', 'notes'])):
@@ -88,7 +88,9 @@ def export_report(project: Project, path: Path) -> None:
         ('Ожидающих проверки сгенерированных тестов', sum(t.review_status == ReviewStatus.PENDING for t in generated)),
         ('Отклонённых сгенерированных тестов', sum(t.review_status == ReviewStatus.REJECTED for t in generated)),
         ('Отклонённых элементов (исключены)', current['rejected_elements']),
+        ('Элементов с неподтверждённой цитатой (исключены)', current['blocked_elements']),
         ('Замечания анализа требований', project.analysis_notes),
+        ('Полнота не подтверждена для требований', project.analysis_incomplete),
         ('Оценка', 'Подтверждённое покрытие активных выделенных элементов; не результат выполнения тестов'),
         ('Правило TestCases', 'Неотклонённые существующие и только принятые сгенерированные тесты')]:
         _append(summary, [label, value])
